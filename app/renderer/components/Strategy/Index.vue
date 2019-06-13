@@ -10,7 +10,7 @@
                             <Pnl
                                 ref="pnl"
                                 :currentId="strategyId" 
-                                pageType="strategy"
+                                moduleType="strategy"
                                 :minMethod="getStrategyPnlMin"
                                 :dayMethod="getStrategyPnlDay"
                                 @startNanomsg="buildMinNanomsgListener"
@@ -29,7 +29,7 @@
                             <Pos
                             ref="pos"
                             :currentId="strategyId"
-                            pageType="strategy"
+                            moduleType="strategy"
                             :getDataMethod="getStrategyPos"
                             @startNanomsg="buildPosNanomsgListener"
                             :nanomsgBackData="posNanomsgBack"                   
@@ -39,7 +39,7 @@
                             <CurrentOrder
                             ref="current-order"
                             :currentId="strategyId"
-                            pageType="strategy"
+                            moduleType="strategy"
                             :getDataMethod="getStrategyOrder"
                             @startNanomsg="buildOrderNanomsgListener"
                             :nanomsgBackData="orderNanomsgBack"
@@ -49,7 +49,7 @@
                             <TradeRecord 
                             ref="trade-record"
                             :currentId="strategyId"
-                            pageType="strategy"
+                            moduleType="strategy"
                             :getDataMethod="getStrategyTrade"
                             @startNanomsg="buildTradeNanomsgListener"
                             :nanomsgBackData="tradeNanomsgBack"
@@ -92,7 +92,7 @@ export default {
    
     computed: {
         ...mapState({
-            currentStrategy: state => state.STRATEGY.currentStrategy
+            currentStrategy: state => state.STRATEGY.currentStrategy,
         }),
 
         strategyId(){

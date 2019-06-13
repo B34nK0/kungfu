@@ -37,7 +37,6 @@ class OrderStatus:
 
     @classmethod
     def is_final_status(cls, status):
-        status = status.decode("utf-8")
         if status == OrderStatus.Error or status == OrderStatus.Canceled or status == OrderStatus.Filled or status == OrderStatus.PartialFilledNotActive:
             return True
         else:
@@ -45,7 +44,6 @@ class OrderStatus:
 
     @classmethod
     def to_str(cls, status):
-        status = status.decode('utf-8')
         if status == OrderStatus.Submitted:
             return "Submitted"
         elif status == OrderStatus.Pending:
@@ -82,9 +80,18 @@ class MsgType:
     Portfolio = 207
     AccountInfoByMin = 208
     PortfolioByMin = 209
+    PositionDetail = 210
+    SubPortfolioInfo = 211
 
     ReqLogin = 301
     Subscribe = 302
+    ReqOrderInput = 303
+    ReqOrderAction = 304
+
+    RspLogin = 351
+    RspSubscribe = 352
+    RspOrderInput = 353
+    RspOrderAction = 354
 
     GatewayState = 401
 
@@ -93,6 +100,8 @@ class MsgType:
 
     SwitchDay = 601
     RspTradingDay = 602
+
+    ReloadFutureInstrument = 701
 
 
 class InstrumentType:

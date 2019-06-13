@@ -1,7 +1,8 @@
 <template>
     <el-dialog 
     width="540px" 
-     :title=" (method == 'add' ? '添加' : '设置') + source + '柜台账户'"  
+    :title=" (method == 'add' ? '添加' : '设置') + source + '柜台账户'"  
+    v-if="visible"
     :visible="visible" 
     :close-on-click-modal="false"
     @close="handleCancel"
@@ -16,14 +17,10 @@
             >
                 <el-col :span="19">
                     <el-input v-if="item.type === 'str'" :type="item.key" v-model.trim="value[item.key]" :disabled="method == 'update' && sourceType[source].key == item.key"></el-input>
-                   
                     <el-input v-if="item.type === 'password'" :type="item.key" v-model.trim="value[item.key]" :disabled="method == 'update' && sourceType[source].key == item.key" show-password></el-input>
-
                     <el-switch v-if="item.type === 'bool'" v-model.trim="value[item.key]"></el-switch>
-
                     <el-input-number v-if="item.type === 'int'"  :controls="false" v-model.trim="value[item.key]"></el-input-number>
-
-                    <el-select v-if="item.type === 'select'" :multiple="item.multiple" collapse-tags size="small"  v-model.trim="value[item.key]" placeholder="请选择">
+                    <el-select size="small" v-if="item.type === 'select'" :multiple="item.multiple" collapse-tags  v-model.trim="value[item.key]" placeholder="请选择">
                         <el-option
                             v-for="item in item.data"
                             :key="item.value"
@@ -31,9 +28,7 @@
                             :value="item.value">
                         </el-option>
                     </el-select>
-
                 </el-col>
-
                 <el-col :span="2" :offset="1" v-if="item.tip">
                     <el-tooltip class="item" effect="dark" :content="item.tip" placement="right">
                         <i class="el-icon-question mouse-over"></i>
@@ -43,8 +38,8 @@
 
         </el-form>
         <div slot="footer" class="dialog-footer">
-            <el-button @click="handleCancel" size="small">取 消</el-button>
-            <el-button type="primary" size="small" @click="handleSubmitSetting">确 定</el-button>
+            <el-button @click="handleCancel" size="mini">取 消</el-button>
+            <el-button type="primary" size="mini" @click="handleSubmitSetting">确 定</el-button>
         </div>
     </el-dialog>
 </template>
@@ -78,7 +73,7 @@ export default {
             default: 'add'
         },
         //选中柜台下的所有账户，字段用于弹窗检查account_id或者user_id是否重名的
-        sourceAccounts: {
+        accountList: {
             type: Array,
             default: () => []
         }
@@ -96,12 +91,6 @@ export default {
         return {}
     },
 
-    computed:{
-        ...mapState({
-            processStatus: state => state.BASE.processStatus,
-        })
-    },
-
     methods:{
         handleCancel() {
             this.close()
@@ -114,10 +103,7 @@ export default {
                 if(valid) {
                     let account_id = `${t.source}_${t.value[t.sourceType[t.source].key]}`
                     const gatewayName = 'td_' + account_id
-                    
-                    //去空格
                     const formValue = t.value
-                  
                     let changeAccount 
                     if(t.method == 'add') { //添加账户
                         changeAccount = ACCOUNT_API.addAccount(account_id, t.source, t.firstAccount, JSON.stringify(formValue))
@@ -127,8 +113,6 @@ export default {
 
                     changeAccount.then(() => {
                         t.$emit('successSubmitSetting')
-                        //查看td连接状态
-                        const state = t.$utils.ifProcessRunning(gatewayName, t.processStatus)
                         t.$message.success('操作成功！')
                     })
                     .catch((err) => {
@@ -145,13 +129,13 @@ export default {
             const t = this;
             if(t.method == 'add' && t.sourceType[t.source].key == item.key){
                 return [
-                    {validator: t.validateAccountId},
-                    {required: true, message: item.rule}
+                    {validator: t.validateAccountId, trigger: 'blur'},
+                    {required: true, message: item.rule, trigger: 'blur'}
                 ] 
             }else{
                 let validators = [];
-                if(item.validator && item.validator.length) validators = item.validator.map(v => ({validator: v}))
-                if(item.required) validators.push({required: true, message: item.rule})
+                if(item.validator && item.validator.length) validators = item.validator.map(v => ({validator: v, trigger: 'blur'}))
+                if(item.required) validators.push({required: true, message: item.rule, trigger: 'blur'})
                 return validators
             }
         },
@@ -166,12 +150,12 @@ export default {
         //检查account_id或者user_id是否重复
         validateAccountId(rule, value, callback) {
             const t = this
-            const index = t.sourceAccounts.findIndex(item => {
-               const account_id = item.account_id.toAccountId();
+            const index = t.accountList.findIndex(a => {
+               const account_id = a.account_id.toAccountId();
                return account_id == value
             })
             if(index != -1) {
-                callback('重名，请重新输入！')
+                callback('已存在该账户ID！')
             }else {
                 callback()
             }

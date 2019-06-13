@@ -59,7 +59,7 @@
             </div>
         </div>
         <span slot="reference" :class="[currentStatus]">
-            <i class="fa fa-server fa-lg"></i>
+            <i class="el-icon-s-operation"></i>
             账户状态
         </span>
     </el-popover>
@@ -68,7 +68,6 @@
 import {mapGetters, mapState} from 'vuex';
 import {accountSource, sourceType} from '@/assets/config/accountConfig'
 import {statusConfig} from '@/assets/config/statusConfig'
-import {onUpdateProcessStatusListener, offUpdateProcessStatusListener} from '@/io/event-bus';
 export default {
     data(){
         let statusLevel = {};
@@ -78,7 +77,7 @@ export default {
         return {
             config: sourceType,
             statusLevel,
-            processStatus: Object.freeze({})
+            // processStatus: Object.freeze({})
         }
     },
 
@@ -91,6 +90,7 @@ export default {
         ...mapState({
             accountList: state => state.ACCOUNT.accountList,
             mdTdState: state => state.ACCOUNT.mdTdState,
+            processStatus: state => state.BASE.processStatus
         }),
 
         //展示最坏的情况
@@ -139,16 +139,6 @@ export default {
         }
     },
 
-    mounted() {
-        const t = this;
-        onUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
-    },
-    
-    destroyed() {
-        const t = this;
-        offUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
-    },
-
     methods: {
         buildMdState(accountItem){
             const t = this;
@@ -160,10 +150,10 @@ export default {
             return (t.mdTdState[`td_${accountItem.account_id}`] || {}).state
         },
 
-        updateProcessStatus(res){
-            const t = this;
-            t.processStatus = res
-        },
+        // updateProcessStatus(res){
+        //     const t = this;
+        //     t.processStatus = res
+        // },
 
         //Td开关
         handleTdSwitch(value, account) {

@@ -1,21 +1,11 @@
 <template>
 <tr-dashboard title="策略">
     <div slot="dashboard-header">
-      
-        <tr-dashboard-header-item width="101px">
-            <el-input 
-                size="mini"
-                placeholder="策略"
-                prefix-icon="el-icon-search"
-                v-model.trim="searchKeyword"
-                >
-              </el-input>
-        </tr-dashboard-header-item>
-        <!-- <tr-dashboard-header-item>
-            <i class="fa fa-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
-        </tr-dashboard-header-item> -->
         <tr-dashboard-header-item>
-            <el-button size="mini" @click="handleAddStrategy">添加</el-button>
+            <tr-search-input v-model.trim="searchKeyword"></tr-search-input>
+        </tr-dashboard-header-item>
+        <tr-dashboard-header-item>
+            <el-button size="mini" @click="handleAddStrategy" title="添加">添加</el-button>
         </tr-dashboard-header-item>
     </div>
     <div class="table-body">
@@ -72,9 +62,9 @@
                 align="right"       
             >
                 <template slot-scope="props">
-                    <span class="tr-oper" @click.stop="handleSetStrategy(props.row)"><i class="mouse-over fa fa-cog"></i></span>
-                    <span class="tr-oper" @click.stop="handleEditStrategy(props.row)"><i class="mouse-over fa fa-edit"></i></span>
-                    <span class="tr-oper-delete" @click.stop="handleDeleteStrategy(props.row)"><i class="mouse-over fa fa-trash-o"></i></span>
+                    <span class="tr-oper" @click.stop="handleSetStrategy(props.row)"><i class="mouse-over el-icon-setting"></i></span>
+                    <span class="tr-oper" @click.stop="handleEditStrategy(props.row)"><i class="mouse-over el-icon-edit-outline"></i></span>
+                    <span class="tr-oper-delete" @click.stop="handleDeleteStrategy(props.row)"><i class="mouse-over el-icon-delete"></i></span>
                 </template>
             </el-table-column>
         </el-table>
@@ -102,7 +92,7 @@
                 {validator: noZeroAtFirstValidator, trigger: 'blur'}
                 ]"
             >
-                <el-input v-model.trim="setStrategyForm.strategyId" :disabled="setStrategyDialogType == 'set'"></el-input>
+                <el-input v-model.trim="setStrategyForm.strategyId" :disabled="setStrategyDialogType == 'set'" placeholder="请输入策略名称"></el-input>
             </el-form-item>
             <el-form-item
             label="入口文件"
@@ -116,8 +106,8 @@
             </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
-            <el-button  size="small" @click="handleClearAddStrategyDialog">取 消</el-button>
-            <el-button type="primary" size="small" @click="handleConfirmAddEditorStrategy">确 定</el-button>
+            <el-button  size="mini" @click="handleClearAddStrategyDialog">取 消</el-button>
+            <el-button type="primary" size="mini" @click="handleConfirmAddEditorStrategy">确 定</el-button>
         </div>
     </el-dialog>
 </tr-dashboard>
@@ -129,7 +119,6 @@ import {openWin} from '@/assets/js/utils';
 import {startStrategy, deleteProcess} from '__gUtils/processUtils.js';
 import * as STRATEGY_API from '@/io/strategy';
 import {debounce} from '@/assets/js/utils';
-import {onUpdateProcessStatusListener, offUpdateProcessStatusListener} from '@/io/event-bus';
 import {chineseValidator, specialStrValidator, noZeroAtFirstValidator} from '@/assets/js/validator';
 import path from 'path';
 import {remote} from 'electron'
@@ -149,7 +138,6 @@ export default {
                 strategyPath: "",
             },
             renderTable: false,
-            processStatus: Object.freeze({})
         }
     },
 
@@ -161,12 +149,6 @@ export default {
     mounted(){
         const t = this;
         t.renderTable = true;
-        onUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
-    },
-
-    destroyed(){
-        const t = this;
-        offUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
     },
 
     watch: {
@@ -178,7 +160,8 @@ export default {
     computed: {
         ...mapState({
             currentStrategy: state => state.STRATEGY.currentStrategy,
-            strategyList: state => state.STRATEGY.strategyList
+            strategyList: state => state.STRATEGY.strategyList,
+            processStatus: state => state.BASE.processStatus
         }),
 
         strategyListFilter(){
@@ -233,17 +216,16 @@ export default {
                 return;
             }
 
-            t.$confirm(`删除策略 ${strategy_id} 会删除所有相关信息，确认删除吗？`, '提示', {
-                confirmButtonText: '确 定',
-                cancelButtonText: '取 消'})
+            t.$confirm(`删除策略 ${strategy_id} 会删除所有相关信息，确认删除吗？`, '提示', {confirmButtonText: '确 定', cancelButtonText: '取 消'})
             .then(() => t.$store.dispatch('deleteStrategy', strategy_id))
             .then(() => {
                  //如果删除的项是选中的项，则默认选中第一项,如果没有项了，则当前项为空对象{}
-                if(t.currentStrategy.strategy_id === strategy_id) {
+                if (t.currentStrategy.strategy_id === strategy_id) {
                     const currentStrategy = t.strategyList.length ? t.strategyList[0] : {}
                     t.$store.dispatch('setCurrentStrategy', currentStrategy)
                 }
             })
+            .then(() => deleteProcess(strategy_id))
             .then(() => t.$message.success('操作成功！'))
             .catch((err) => {
                 if(err == 'cancel') return
@@ -348,10 +330,10 @@ export default {
             t.setStrategyDialogType = ''
         },
 
-        updateProcessStatus(res){
-            const t = this;
-            t.processStatus = res
-        },
+        // updateProcessStatus(res){
+        //     const t = this;
+        //     t.processStatus = res
+        // },
 
         //check策略是否重复
         validateDuplicateStrategyId(rule, value, callback){

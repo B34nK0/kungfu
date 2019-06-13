@@ -1,8 +1,7 @@
 const nano = require('nanomsg');
-const {BASE_DIR} = require('__gConfig/pathConfig');
+const { BASE_DIR, GATEWAY_DIR, STRATEGY_DIR, SOCKET_DIR } = require('__gConfig/pathConfig');
 const fse = require('fs-extra');
 const path = require('path');
-const {addFile} = require('__gUtils/fileUtils');
 window.nanomsgController = {}
 
 /**
@@ -14,7 +13,7 @@ window.nanomsgController = {}
 export const connectGatewayNanomsg = (gatewayName) => {
     if(!gatewayName) return false;
     const sub = nano.socket('sub');
-    const ipcDir = path.join(BASE_DIR, 'gateway', gatewayName);
+    const ipcDir = path.join(GATEWAY_DIR, gatewayName);
     fse.ensureDirSync(ipcDir)
     const ipcPath = path.join(ipcDir, 'pub.ipc')
     const addr = `ipc://${ipcPath}`
@@ -53,7 +52,7 @@ export const closeGlobalGatewayNanomsg = (gatewayName) => {
 export const connectStrategyNanomsg = (strategyId) => {
     if(!strategyId) return false;
     const sub = nano.socket('sub');
-    const ipcDir = path.join(BASE_DIR, 'strategy', strategyId);
+    const ipcDir = path.join(STRATEGY_DIR, strategyId);
     fse.ensureDirSync(ipcDir)
     const ipcPath = path.join(ipcDir, 'pub.ipc')
     const addr = `ipc://${ipcPath}`
@@ -81,14 +80,40 @@ export const connectCalendarNanomsg = () => {
     return sub
 }
 
-//主动获取交易日
+//请求获取交易日
 export const reqCalendarNanomsg = () => {
     const req = nano.socket('req', {
         rcvtimeo: 1000
     })
-    const ipcDir = path.join(BASE_DIR, 'calendar');
+    const ipcDir = SOCKET_DIR //KF_HOME/socket
     fse.ensureDirSync(ipcDir)
-    const ipcPath = path.join(ipcDir, 'rep.ipc')
+    const ipcPath = path.join(ipcDir, 'service.sock')
+    const addr = `ipc://${ipcPath}`
+    req.connect(addr)
+    return req
+}
+
+
+//手动下撤单(账户)
+export const reqGatewayNanomsg = (gatewayName) => {
+    const req = nano.socket('req', {
+        rcvtimeo: 1000
+    })
+    const ipcDir = path.join(GATEWAY_DIR, gatewayName)
+    fse.ensureDirSync(ipcDir)
+    const ipcPath = path.join(ipcDir, 'rep.ipc');
+    const addr = `ipc://${ipcPath}`
+    req.connect(addr)
+    return req
+}
+
+export const reqStrategyNanomsg = (strategyId) => {
+    const req = nano.socket('req', {
+        rcvtimeo: 1000
+    })
+    const ipcDir = path.join(STRATEGY_DIR, strategyId)
+    fse.ensureDirSync(ipcDir)
+    const ipcPath = path.join(ipcDir, 'rep.ipc');
     const addr = `ipc://${ipcPath}`
     req.connect(addr)
     return req

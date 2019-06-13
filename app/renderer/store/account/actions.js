@@ -3,10 +3,7 @@ import Vue from 'vue';
 import {closeGlobalGatewayNanomsg, refreshGlobalGatewayNanomsg} from '@/io/nano/buildNmsg'
 import * as msgType from '@/io/nano/msgType'
 import * as ACCOUNT_API from '@/io/account';
-import {EVENT_BUS} from '@/io/event-bus';
 import {startTd, startMd, deleteProcess} from '__gUtils/processUtils'
-import {removeFileFolder} from '__gUtils/fileUtils'
-import {buildGateWayStateDBPath} from '__gConfig/pathConfig'
 import {debounce} from '@/assets/js/utils'
 
 
@@ -71,21 +68,22 @@ export const buildGatewayNmsgListener = ({dispatch}, gatewayName) => {
     //如果新的message，则报警
     messageInfo[gatewayName] = ''
     sub.on('data', buf => {
-        const data = JSON.parse(String(buf).replace(/\0/g,''))      
-        //监听td、md状态
-        if(msgType.gatewayState == data.msg_type) {
-            if(data.data && data.data.message) {
-                const message = data.data.message;
-                if(messageInfo[gatewayName] !== message) debounceMessageError(gatewayName, data.data.message)
-            }else {
-                messageInfo[gatewayName] = '';
-            }
-            //更新md/td状态
-            dispatch('setOneMdTdState', {name: gatewayName, oneState: Object.freeze(data.data)})
-        }
-        //监听资金
-        if(msgType.accountInfo == data.msg_type) {
-            dispatch('setAccountAssetById', {accountId, accountAsset: Object.freeze(data.data)})
+        const data = JSON.parse(String(buf))
+        const dataMsgType = data.msg_type;
+        switch(dataMsgType){
+            case msgType.gatewayState: //监听td、md状态
+                dispatch('setOneMdTdState', {name: gatewayName, oneState: Object.freeze(data.data)})
+                if(data.data && data.data.message) {
+                    const message = data.data.message;
+                    if(messageInfo[gatewayName] !== message) debounceMessageError(gatewayName, data.data.message)
+                }else {
+                    messageInfo[gatewayName] = '';
+                }
+                //更新md/td状态
+                break;
+            case msgType.accountInfo: //监听资金
+                dispatch('setAccountAssetById', {accountId, accountAsset: Object.freeze(data.data)})
+                break
         }
     })
 }
@@ -134,6 +132,3 @@ export const switchMd = ({dispatch}, {account, value}) => {
     .then(() => Vue.message.start('正在启动...'))       
     .catch(err => Vue.message.error(err.message || '操作失败！'))          
 }
-
-
-

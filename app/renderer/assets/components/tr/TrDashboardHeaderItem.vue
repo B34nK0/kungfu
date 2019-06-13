@@ -32,7 +32,7 @@ export default {
                 color: $icon;
             }
         }
-        i.fa{
+        i{
             font-size: 14px;
         }
     }

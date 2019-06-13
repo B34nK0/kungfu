@@ -16,19 +16,21 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 PROJECT(kungfu)
 
 ############################################################
-
-ADD_COMPILE_DEFINITIONS(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-
 SET(CMAKE_CXX_STANDARD 14)
 
-if(UNIX AND NOT APPLE)
+if(UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
     SET(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
-    OPTION(BUILD_SHARED_LIBS "turn OFF for .a libs" ON)
 endif()
 if(APPLE)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
-    SET(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+    SET(KFC_INSTALL_RPATH
+        "@executable_path/../Resources/kfc"
+        "@loader_path"
+        "@loader_path/../../kfc"
+    )
+    SET(CMAKE_MACOSX_RPATH ON)
+    SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    SET(CMAKE_INSTALL_RPATH "${KFC_INSTALL_RPATH}")
 endif()
 if(WIN32)
     # install boost using binaries from https://sourceforge.net/projects/boost/files/boost-binaries/1.64.0/
@@ -36,16 +38,15 @@ if(WIN32)
 #    ADD_COMPILE_DEFINITIONS(_WIN32_WINNT=0x0A00) # Target Windows 10 https://docs.microsoft.com/en-us/cpp/porting/modifying-winver-and-win32-winnt?view=vs-2019
     ADD_COMPILE_DEFINITIONS(BOOST_ALL_NO_LIB)
     ADD_COMPILE_DEFINITIONS(HAVE_SNPRINTF)
+    ADD_COMPILE_DEFINITIONS(SPDLOG_FMT_EXTERNAL)
 #    ADD_COMPILE_DEFINITIONS(BOOST_ALL_DYN_LINK)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /w")
     SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-#    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /VERBOSE")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /IGNORE:4199")
+    SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /IGNORE:4199")
 endif()
 
-OPTION(USE_SERVICE "use memory service" ON)
-OPTION(USE_HASH_CODE "use hash code when writing" ON)
 OPTION(test "Build all tests." ON) # Makes boolean 'test' available.
-
 ENABLE_TESTING()
 
 ############################################################
@@ -60,5 +61,14 @@ REQUIRE_BOOST_LIBS("1.64.0" "locale;date_time;filesystem;system;thread;serializa
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
 ############################################################
+
+ADD_COMPILE_DEFINITIONS(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
+############################################################
+
 ADD_SUBDIRECTORY(cpp)
 
+############################################################
+
+SET(KF_EXTENSIONS_BUILD_DIR ${CMAKE_BINARY_DIR}/build_extensions)
+ADD_SUBDIRECTORY(extensions)

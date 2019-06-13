@@ -1,18 +1,11 @@
 <template>
     <tr-dashboard title="交易账户">
         <div slot="dashboard-header">
-            <tr-dashboard-header-item width="101px">
-                <el-input 
-                    size="mini"
-                    placeholder="关键字"
-                    prefix-icon="el-icon-search"
-                    v-model.trim="accountIdKey"
-                    >
-                </el-input>
-            </tr-dashboard-header-item>
-
             <tr-dashboard-header-item>
-                <el-button size="mini" @click="handleAddAccount">添加</el-button>
+                <tr-search-input v-model.trim="accountIdKey"></tr-search-input>
+            </tr-dashboard-header-item>
+            <tr-dashboard-header-item>
+                <el-button size="mini" @click="handleAddAccount" title="添加">添加</el-button>
             </tr-dashboard-header-item>
         </div>
         <div class="table-body">
@@ -100,7 +93,7 @@
                     show-overflow-tooltip
                     >
                     <template slot-scope="props" >
-                        <template v-if="(config[props.row.source_name] || {}).typeName == '期货'">
+                        <template v-if="(config[props.row.source_name] || {}).typeName == 'future'">
                             {{$utils.toDecimal((accountsAsset[props.row.account_id] || {}).margin) + '' || '--'}}
                         </template>
                         <!-- market_value -->
@@ -120,11 +113,13 @@
                 <el-table-column
                     label=""
                     align="right"
+                    min-width="100"
                 >
                     <template slot-scope="props">
-                        <span class="tr-oper" @click.stop="handleOpenLogFile(props.row)"><i class="fa fa-file-text-o mouse-over" title="打开日志文件"></i></span>
-                        <span class="tr-oper" @click.stop="handleUpdateAccount(props.row)"><i class="mouse-over fa fa-cog" title="更新账户设置"></i></span>
-                        <span class="tr-oper-delete" @click.stop="handleDeleteAccount(props.row)"><i class="mouse-over fa fa-trash-o" title="删除账户"></i></span>
+                        <span class="tr-oper" @click.stop="handleOpenLogFile(props.row)"><i class="el-icon-document mouse-over" title="打开日志文件"></i></span>
+                        <span class="tr-oper" @click.stop="handleOpenFeeSettingDialog(props.row)"><i class="el-icon-money mouse-over" title="费率设置"></i></span>
+                        <span class="tr-oper" @click.stop="handleOpenUpdateAccountDialog(props.row)"><i class="el-icon-setting mouse-over" title="账户设置"></i></span>
+                        <span class="tr-oper-delete" @click.stop="handleDeleteAccount(props.row)"><i class=" el-icon-delete mouse-over" title="删除账户"></i></span>
                     </template>
                 </el-table-column>
             </el-table>
@@ -143,30 +138,39 @@
                                     v-if="item.typeName"
                                     :type="item.type" 
                                     >
-                                        {{item.typeName}}
+                                        {{item.typeName === 'future' ? '期货' : '股票'}}
                                     </el-tag>
                                 </el-radio>
                             </el-col>
                         </el-row>
                     </el-radio-group>
                 <div slot="footer" class="dialog-footer">
-                    <el-button @click="handleCloseSelectSource" size="small">取 消</el-button>
-                    <el-button type="primary" size="small" @click="handleSelectSource">确 定</el-button>
+                    <el-button @click="handleCloseSelectSource" size="mini">取 消</el-button>
+                    <el-button type="primary" size="mini" @click="handleSelectSource">确 定</el-button>
                 </div>
             </el-dialog>
 
             <!-- 设置账户 -->
             <SetAccountDialog
-            v-if="visiblity.setAccount"
             v-model.trim="accountForm"
+            v-if="visiblity.setAccount"
             :visible.sync="visiblity.setAccount"
             :method="method" 
             :source="selectedSource"
             @successSubmitSetting="successSubmitSetting"
             @refreshData="refreshData"
             :firstAccount="sourceFirstAccount"
-            :sourceAccounts="accountList.filter(a => (a.source_name === selectedSource))"
+            :accountList="accountList"
             />
+
+            <SetFeeDialog
+            v-if="visiblity.setFee"
+            :visible.sync="visiblity.setFee"
+            :accountType="(config[feeAccount.source_name] || {}).typeName"
+            :accountId="feeAccount.account_id"
+            :setFeeSettingData="setFeeSettingData"
+            :getFeeSettingData="getFeeSettingData"
+            ></SetFeeDialog>
     </tr-dashboard>
 </template>
 
@@ -177,8 +181,8 @@ import * as ACCOUNT_API from '@/io/account'
 import * as BASE_API from '@/io/base'
 import {accountSource, sourceType, ifSourceDisable} from '@/assets/config/accountConfig'
 import SetAccountDialog from './SetAccountDialog'
+import SetFeeDialog from './SetFeeDialog'
 import {deleteProcess} from '__gUtils/processUtils'
-import {onUpdateProcessStatusListener, offUpdateProcessStatusListener} from '@/io/event-bus';
 import {ACCOUNTS_DIR, LOG_DIR, buildGatewayPath} from '__gConfig/pathConfig'
 import {removeFileFolder, openReadFile} from "__gUtils/fileUtils.js"
 
@@ -198,18 +202,22 @@ export default {
             selectedSource: '',
             visiblity: {
                 selectSource: false,
-                setAccount: false
+                setAccount: false,
+                setFee: false,
             },
             sourceFirstAccount: false, //来标记是否是某柜台下添加的第一个账户
             taskList: [], //存放kungfu_task数据表内容
             renderTable: false, //table等到mounted后再渲染，不然会导致table高度获取不到，页面卡死
-            processStatus: Object.freeze({}),
- 
+            // processStatus: Object.freeze({}),
+            setFeeSettingData: ACCOUNT_API.setFeeSettingData,
+            getFeeSettingData: ACCOUNT_API.getFeeSettingData,
+            feeAccount: null
         }
     },
 
     components: {
-        SetAccountDialog
+        SetAccountDialog,
+        SetFeeDialog
     },
 
     computed:{
@@ -218,7 +226,8 @@ export default {
             accountsAsset: state => state.ACCOUNT.accountsAsset,
             accountList: state => state.ACCOUNT.accountList, 
             currentAccount: state => state.ACCOUNT.currentAccount,
-            currentId: state => (state.ACCOUNT.currentAccount || {}).account_id
+            currentId: state => (state.ACCOUNT.currentAccount || {}).account_id,
+            processStatus: state => state.BASE.processStatus
         }),
 
         //用来存放筛选完的列表
@@ -245,12 +254,6 @@ export default {
     mounted() {
         const t = this;
         t.renderTable = true
-        onUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
-    },
-    
-    destroyed() {
-        const t = this;
-        offUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
     },
 
     methods:{
@@ -260,7 +263,7 @@ export default {
         },
 
         //编辑账户
-        handleUpdateAccount(row) {
+        handleOpenUpdateAccountDialog(row) {
             const t = this
             t.method = 'update'
             t.accountForm = JSON.parse(row.config) 
@@ -288,11 +291,20 @@ export default {
                     t.$store.dispatch('setCurrentAccount', {})
                 }
             })
+            .then(() => deleteProcess('td_' + row.account_id))
+            .then(() => (row.receive_md) && deleteProcess('md_' + row.source_name))
             .then(() => t.$message.success('操作成功！'))
             .catch((err) => {
                 if(err == 'cancel') return
                 t.$message.error(err.message || '操作失败！')
             })
+        },
+
+        //费率设置
+        handleOpenFeeSettingDialog(row){
+            const t = this;
+            t.visiblity.setFee = true;
+            t.feeAccount = row;
         },
 
         //选择柜台
@@ -345,15 +357,16 @@ export default {
             })
         },
 
+        //打开日志
         handleOpenLogFile(row){
             const logPath = path.join(LOG_DIR, `td_${row.account_id}.log`);
             openReadFile(logPath)
         },
 
-        updateProcessStatus(res){
-            const t = this;
-            t.processStatus = res
-        },
+        // updateProcessStatus(res){
+        //     const t = this;
+        //     t.processStatus = res
+        // },
 
         //获取账户列表
         getAccountList() {
@@ -365,8 +378,7 @@ export default {
                         t.$store.dispatch('setCurrentAccount', accountList[0] || {})
                     }
                 })
-            })
-            
+            })   
         },
 
         //删除账户需要将所关联的数据库以及进程都关掉

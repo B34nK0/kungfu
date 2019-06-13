@@ -5,23 +5,16 @@
             <el-checkbox v-model="ifScrollToBottom">跟踪至底部</el-checkbox>
         </tr-dashboard-header-item>
         <tr-dashboard-header-item>
-            <i class="fa fa-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
+            <tr-search-input v-model.trim="searchKeyword"></tr-search-input>
         </tr-dashboard-header-item>
         <tr-dashboard-header-item>
-            <i class="fa fa-file-text-o mouse-over" title="打开日志文件"  @click="handleOpenLogFile(logPath)"></i>
-        </tr-dashboard-header-item>
-        <tr-dashboard-header-item width="101px">
-            <el-input 
-                size="mini"
-                placeholder="关键字"
-                prefix-icon="el-icon-search"
-                v-model.trim="searchKeyword"
-                type="search"
-                >
-                </el-input>
+            <i class="el-icon-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
         </tr-dashboard-header-item>
         <tr-dashboard-header-item>
-            <el-button size="mini" @click="handleClearLog">清空</el-button>
+            <i class="el-icon-document mouse-over" title="打开日志文件"  @click="handleOpenLogFile(logPath)"></i>
+        </tr-dashboard-header-item>
+        <tr-dashboard-header-item>
+            <el-button size="mini" @click="handleClearLog" title="清空">清空</el-button>
         </tr-dashboard-header-item>
     </div>
         <tr-table
@@ -44,8 +37,7 @@ import {debounce, throttle, throttleInsert} from '@/assets/js/utils'
 import {buildProcessLogPath} from '__gConfig/pathConfig.js';
 import {Tail} from 'tail';
 import readline from 'readline';
-import fs from 'fs';
-import {clearFileContent, addFile, openReadFile} from '__gUtils/fileUtils.js';
+import {clearFileContent, addFile, openReadFile, existsSync} from '__gUtils/fileUtils.js';
 import { ipcRenderer } from 'electron';
 export default {
     name: 'log',
@@ -152,7 +144,7 @@ export default {
         init: debounce(function(processId, logPath, searchKeyword){
             const t = this;
             //文件不存在则创建
-            if(!fs.existsSync(logPath)){
+            if(!existsSync(logPath)){
                 t.tableData = Object.freeze([])
                 addFile('', logPath, 'file')
             }
@@ -196,7 +188,11 @@ export default {
                     if(len > 1000) t.tableData = t.tableData.slice(len - 1000, len)
                 }, 60000);
                 
-            t.tailObserver = new Tail(logPath);   
+            t.tailObserver = new Tail(logPath, {
+                flushAtEOF: true,
+                useWatchFile: true,
+                follow: true,
+            });   
             t.tailObserver.watch();    
             t.tailObserver.on('line', line => ((curProcId, curKw) => {
                 if(curKw) return;

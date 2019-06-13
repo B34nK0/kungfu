@@ -7,12 +7,11 @@ import * as utils from './assets/js/utils'
 import {Tag, Table, TableColumn, Col, Row, Input, InputNumber, DatePicker, Select, Option, Button, Tabs, TabPane, Card, Container, Header, Aside, Main, Footer, Dropdown, DropdownMenu, DropdownItem, Switch, MessageBox, Popover, Dialog, Loading, Radio, RadioGroup, Form, FormItem, Notification, Checkbox, Tooltip} from 'element-ui';
 import moment from 'moment';
 import App from './App.vue';
-import {EVENT_BUS} from './io/event-bus'
 import {listProcessStatus} from '__gUtils/processUtils';
+import {ipcRenderer} from 'electron'
 
-import './assets/iconfont/iconfont.css';
-import './assets/css/font-awesome.min.css';
-
+import '@/assets/iconfont/iconfont.js';
+import '@/assets/iconfont/iconfont.css';
 
 //element
 Vue.use(Tag)
@@ -45,7 +44,6 @@ Vue.use(RadioGroup)
 Vue.use(Form)
 Vue.use(FormItem)
 Vue.use(Loading)
-Vue.use(Components)
 Vue.use(Tooltip)
 Vue.use(Checkbox)
 Vue.config.productionTip = false
@@ -55,44 +53,9 @@ Vue.loading =  Vue.prototype.$loading = Loading.service;
 Vue.confirm = Vue.prototype.$confirm = MessageBox.confirm;
 Vue.notify =  Vue.prototype.$notify = Notification;
 
-//message 换
-const Message = {
-    error: function(message){
-        Vue.notify({
-            title: '错误',
-            message: message,
-            position: "bottom-right",
-            type: 'error'
-        })
-    },
-    warning: function(message){
-        Vue.notify({
-            title: '警告',
-            message: message,
-            position: "bottom-right",
-            type: 'warning'
-        })
-    },
-    success: function(message){
-        Vue.notify({
-            title: '成功',
-            message: message,
-            position: "bottom-right",
-            type: 'success'
-        })
-    },
+//tr的
+Vue.use(Components)
 
-    start: function(message){
-        Vue.notify({
-            title: '启动中',
-            message: message,
-            position: "bottom-right",
-            type: 'info'
-        })
-    }
-}
-
-Vue.message = Vue.prototype.$message = Message
 
 //moment 格式
 Vue.filter('moment', function (value, formatString) {
@@ -107,20 +70,21 @@ export const startGetProcessStatus = () => {
     clearTimeout(listProcessTimer)
     listProcessStatus()
     .then(res => {
-        console.log(res)
-        res && EVENT_BUS.$emit('update-process-status', Object.freeze(res))
+        const processStatus = Object.freeze(res);
+        processStatus && Vue.store.dispatch('setProcessStatus', processStatus)
     })
     .catch(err => console.error(err))
     .finally(() => listProcessTimer = setTimeout(startGetProcessStatus, 1000))
 }
 
-//start pm2 kungfu engine
+//start pm2 kungfu master
 process.env.ELECTRON_RUN_AS_NODE = true;
-const {startPageEngine, startCalendarEngine} = require('__gUtils/processUtils');
-startPageEngine(false)
-.then(() => startCalendarEngine(false))
+const {startMaster} = require('__gUtils/processUtils');
+startMaster(false)
 .catch(err => console.error(err))
-.finally(() => startGetProcessStatus())
+.finally(() => {
+    startGetProcessStatus()
+})
 
 /* eslint-disable no-new */
 new Vue({
@@ -128,3 +92,17 @@ new Vue({
     store,
     render: h => h(App)
 }).$mount('#app', true)
+
+
+
+//自动更新逻辑
+startAutoUpdate()
+
+function startAutoUpdate(){
+    if(window.location.href.split('#')[1].indexOf('code') !== -1) return;
+    //remove只能移除单个事件，单独封装removeAll移除所有事件
+    ipcRenderer.removeAllListeners('message')
+    ipcRenderer.send('checkForUpdate')
+    ipcRenderer.on("message", (event, text) => console.log(text));
+    //注意：“downloadProgress”事件可能存在无法触发的问题，只需要限制一下下载网速就好了
+}

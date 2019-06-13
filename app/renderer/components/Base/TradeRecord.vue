@@ -1,27 +1,14 @@
 <template>
 <tr-dashboard :title="filter.dateRange ? '历史成交' : '当日成交'">
     <div slot="dashboard-header">
-         <tr-dashboard-header-item>
-            <i class="fa fa-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
+        <tr-dashboard-header-item>
+            <tr-search-input v-model.trim="searchKeyword"></tr-search-input>
         </tr-dashboard-header-item>
-        <tr-dashboard-header-item width="101px">
-            <el-input 
-                size="mini"
-                placeholder="关键字"
-                prefix-icon="el-icon-search"
-                v-model.trim="searchKeyword"
-                >
-            </el-input>
+        <tr-dashboard-header-item>
+            <i class="el-icon-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
         </tr-dashboard-header-item>
-        <tr-dashboard-header-item width="199px">
-            <el-date-picker
-                v-model.trim="filter.dateRange"
-                size="mini"
-                type="daterange"
-                range-separator="～"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期">
-            </el-date-picker>
+        <tr-dashboard-header-item>
+            <i class="el-icon-download mouse-over" title="导出" @click="dateRangeDialogVisiblity = true"></i>
         </tr-dashboard-header-item>
     </div>
     <tr-table
@@ -30,15 +17,22 @@
         :schema="schema"
         :renderCellClass="renderCellClass"
     ></tr-table>
+    <date-range-dialog 
+    @confirm="handleConfirmDateRange"
+    :visible.sync="dateRangeDialogVisiblity"    
+    ></date-range-dialog>
 </tr-dashboard>
 
 </template>
 
 <script>
-import {mapGetters} from 'vuex'
+import { mapGetters, mapState } from 'vuex'
 import moment from 'moment'
-import {offsetName} from '@/assets/config/tradingConfig'
+import { offsetName } from '@/assets/config/tradingConfig'
 import { debounce, throttleInsert, throttle } from "@/assets/js/utils"
+import { writeCSV } from '__gUtils/fileUtils';
+import DateRangeDialog from './DateRangeDialog';
+
 export default {
     name: 'trades-record',
     props: {
@@ -46,7 +40,7 @@ export default {
             type: String,
             default:''
         },
-        pageType: {
+        moduleType: {
             type: String,
             default:''
         },
@@ -71,11 +65,20 @@ export default {
                 dateRange: null
             },
             getDataLock: false,
-            tableData: Object.freeze([])
+            tableData: Object.freeze([]),
+            dateRangeDialogVisiblity: false
         }
     },
 
+    components: {
+        DateRangeDialog
+    },
+
     computed:{
+        ...mapState({
+            calendar: state => state.BASE.calendar, //日期信息，包含交易日
+        }),
+
         schema(){
             return [{
                 type: 'text',
@@ -105,8 +108,8 @@ export default {
                 prop: 'volume',
             },{
                 type: 'text',
-                label: this.pageType == 'account' ? '策略': '账户',
-                prop: this.pageType == 'account' ? 'clientId': 'accountId',
+                label: this.moduleType == 'account' ? '策略': '账户',
+                prop: this.moduleType == 'account' ? 'clientId': 'accountId',
             }]
         }
     },
@@ -159,6 +162,23 @@ export default {
             t.currentId && t.init();
         },
 
+        //选择日期以及保存
+        handleConfirmDateRange(dateRange){
+            const t = this;
+            t.getDataMethod(t.currentId, {
+                id: t.filter.id,
+                dateRange
+            }, t.calendar.trading_day).then(res => {
+                if(!res) return;
+                t.$saveFile({
+                    title: '成交记录',
+                }).then(filename => {
+                    if(!filename) return;
+                    writeCSV(filename, res)
+                })
+            })
+        },
+
         //重置数据
         resetData() {
             const t = this;
@@ -186,12 +206,12 @@ export default {
             t.getDataLock = true
             t.tableData = Object.freeze([])
             //id:用户或者交易id，filter：需要筛选的数据
-            return t.getDataMethod(t.currentId, t.filter).then(res => {
-                if(!res || !res.data.length) {
+            return t.getDataMethod(t.currentId, t.filter, t.calendar.trading_day).then(res => {
+                if(!res || !res.length) {
                     t.tableData = Object.freeze([])
                     return;
                 }
-                t.tableData = Object.freeze(t.dealData(res.data))
+                t.tableData = Object.freeze(t.dealData(res))
             }).finally(() => t.getDataLock = false)
         },
 

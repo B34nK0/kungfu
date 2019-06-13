@@ -15,7 +15,7 @@
                         <Pnl 
                         ref="pnl"
                         :currentId="currentId" 
-                        pageType="account"
+                        moduleType="account"
                         :minMethod="getAccountPnlMin"
                         :dayMethod="getAccountPnlDay"
                         @startNanomsg="buildMinNanomsgListener"
@@ -28,7 +28,8 @@
                         <CurrentOrder
                         ref="current-order"
                         :currentId="currentId"
-                        pageType="account" 
+                        moduleType="account" 
+                        :gatewayName="`td_${currentAccount.account_id}`"
                         :getDataMethod="getAccountOrder" 
                         @startNanomsg="buildOrderNanomsgListener"
                         :nanomsgBackData="orderNanomsgListener"
@@ -42,7 +43,7 @@
                     <Pos 
                     ref="pos"
                     :currentId="currentId" 
-                    pageType="account"
+                    moduleType="account"
                     :accountType="accountType"
                     :getDataMethod="getAccountPos"
                     @startNanomsg="buildPosNanomsgListener"
@@ -54,7 +55,7 @@
                     <TradeRecord
                     ref="trade-record"
                     :currentId="currentId"
-                    pageType="account" 
+                    moduleType="account" 
                     :getDataMethod="getAccountTrade"
                     @startNanomsg="buildTradeNanomsgListener"
                     :nanomsgBackData="tradeNanomsgListener"
@@ -78,7 +79,6 @@ import {sourceType} from '@/assets/config/accountConfig';
 import {refreshGatewayNanomsg} from '@/io/nano/buildNmsg';
 import * as msgType from '@/io/nano/msgType';
 import * as ACCOUNT_API from '@/io/account';
-import {EVENT_BUS} from '@/io/event-bus';
 import {debounce} from '@/assets/js/utils';
 
 

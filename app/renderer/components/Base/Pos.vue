@@ -2,32 +2,17 @@
 <tr-dashboard title="持仓">
     <div slot="dashboard-header">
         <tr-dashboard-header-item>
-            <i class="fa fa-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
+            <tr-search-input v-model.trim="searchKeyword"></tr-search-input>
         </tr-dashboard-header-item>
-        <tr-dashboard-header-item width="101px" v-if="pageType == 'strategy'">
-            <el-select v-model.trim="filter.type" size="mini" clearable placeholder="类型">
-                <el-option
-                v-for="item in accountTypeList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value">
-                </el-option>
-            </el-select>
+        <tr-dashboard-header-item>
+            <i class="el-icon-refresh mouse-over" title="刷新" @click="handleRefresh"></i>
         </tr-dashboard-header-item>
-        
-        <tr-dashboard-header-item width="101px">
-            <!-- <i class="mouse-over fa fa-search" style="font-size: 14px; top: -2px"></i>             -->
-            <el-input 
-                size="mini"
-                placeholder="代码"
-                prefix-icon="el-icon-search"
-                v-model.trim="searchKeyword"
-                >
-                </el-input>
+        <tr-dashboard-header-item>
+            <i class="el-icon-download mouse-over" title="导出" @click="handleExport"></i>
         </tr-dashboard-header-item>
-         <!-- <tr-dashboard-header-item >
-            <el-button size="mini" @click="handleDownload">导出</el-button>
-        </tr-dashboard-header-item> -->
+        <tr-dashboard-header-item>
+            <el-button size="mini" @click="makeOrderDialogVisiblity = true">下单</el-button>
+        </tr-dashboard-header-item>
     </div>
     <tr-table
         v-if="rendererTable"
@@ -35,15 +20,26 @@
         :schema="schema"
         :renderCellClass="renderCellClass"
     ></tr-table>
+
+    <make-order-dialog
+        v-if="makeOrderDialogVisiblity"
+        :visible.sync="makeOrderDialogVisiblity"
+        :moduleType="moduleType"
+        :currentId="currentId"
+    >
+    </make-order-dialog>
 </tr-dashboard>
 </template>
 
 <script>
-import {mapState, mapGetters} from 'vuex'
-import {debounce, throttle} from '@/assets/js/utils'
+import { mapState, mapGetters } from 'vuex'
+import { debounce, throttle } from '@/assets/js/utils'
 import { posDirection } from "@/assets/config/tradingConfig"
 import { ipcRenderer } from 'electron'
-import { clearTimeout, setTimeout } from 'timers';
+import { writeCSV } from '__gUtils/fileUtils';
+import MakeOrderDialog from './MakeOrderDialog';
+
+
 
 export default {
     name: 'positions',
@@ -54,7 +50,7 @@ export default {
             default:''
         },
         //页面类型，是账户页面用还是交易页面用
-        pageType: {
+        moduleType: {
             type: String,
             default:''
         },
@@ -95,7 +91,9 @@ export default {
             },
             searchKeyword: '',
             getDataLock: false, //防止重复快速的调用
-            tableData: Object.freeze([])
+            tableData: Object.freeze([]),
+
+            makeOrderDialogVisiblity: false
         }
     },
 
@@ -147,6 +145,10 @@ export default {
         }
     },
 
+    components: {
+        MakeOrderDialog
+    },
+
 
     watch: {
         //防抖
@@ -190,7 +192,7 @@ export default {
     },
 
     destroyed(){
-        ipcRenderer.removeAllListeners(`res-cancel-order-rate-${this.pageType}`)
+        ipcRenderer.removeAllListeners(`res-cancel-order-rate-${this.moduleType}`)
     },
     
     methods:{
@@ -198,6 +200,16 @@ export default {
             const t = this;
             t.resetData();
             t.currentId && t.init();
+        },
+
+        handleExport(){
+            const t = this;
+            t.$saveFile({
+                title: '保存持仓信息',
+            }).then(filename => {
+                if(!filename) return;
+                writeCSV(filename, t.tableData)
+            })
         },
 
         init: debounce(function() {

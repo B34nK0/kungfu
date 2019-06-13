@@ -57,17 +57,16 @@
                     align="right"
                 >
                     <template slot-scope="props">
-                        <span class="tr-oper" @click.stop="handleOpenLogFile(props.row)"><i class="fa fa-file-text-o mouse-over" title="打开日志文件"></i></span>
-                        <span class="tr-oper" @click.stop="handleUpdateMdSource(props.row)" title="切换行情源账户"><i class="fa fa-exchange mouse-over"></i></span>
+                        <span class="tr-oper" @click.stop="handleOpenLogFile(props.row)"><i class="el-icon-document mouse-over" title="打开日志文件"></i></span>
+                        <span class="tr-oper" @click.stop="handleUpdateMdSource(props.row)" title="切换行情源"><i class="el-icon-s-data mouse-over"></i></span>
                     </template>
                 </el-table-column>
             </el-table>
         </div>
         <SetMdSourceDialog 
-        v-if="setMdSourceDialogVisiblity"
         :visible.sync="setMdSourceDialogVisiblity"
         :currentMdSourceAccount="currentMdSourceAccount"
-        :accountsFromSameSource="accountList.filter(a => (a.source_name === currentMdSourceAccount.source_name))"
+        :accountsFromSameSource="accountList.filter(a => (a.source_name === (currentMdSourceAccount || {}).source_name))"
         @afterSetting="getAccountList"
         ></SetMdSourceDialog>
     </tr-dashboard>
@@ -79,7 +78,6 @@ import {mapState, mapGetters} from 'vuex';
 import {sourceType} from '@/assets/config/accountConfig'
 import SetMdSourceDialog from './SetMdSourceDialog';
 import * as ACCOUNT_API from '@/io/account';
-import {onUpdateProcessStatusListener, offUpdateProcessStatusListener} from '@/io/event-bus';
 import {openReadFile} from '__gUtils/fileUtils';
 import {LOG_DIR} from '__gConfig/pathConfig';
 import path from 'path';
@@ -91,7 +89,7 @@ export default {
             setMdSourceDialogVisiblity: false,
             currentMdSourceAccount: null,
             renderTable: false,
-            processStatus: Object.freeze({})
+            // processStatus: Object.freeze({})
         }
     },
 
@@ -99,6 +97,7 @@ export default {
         ...mapState({
             accountList: state => state.ACCOUNT.accountList,
             mdTdState: state => state.ACCOUNT.mdTdState,
+            processStatus: state => state.BASE.processStatus
         }),
 
         ...mapGetters({
@@ -113,14 +112,7 @@ export default {
     mounted(){
         const t = this;
         t.renderTable = true;
-        onUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
     },
-
-    destroyed(){
-        const t = this;
-        offUpdateProcessStatusListener(t.updateProcessStatus.bind(t))
-    },
-
 
     methods: {
         //切换行情源
@@ -148,10 +140,10 @@ export default {
             openReadFile(logPath);
         },
 
-        updateProcessStatus(res){
-            const t = this;
-            t.processStatus = res
-        },
+        // updateProcessStatus(res){
+        //     const t = this;
+        //     t.processStatus = res
+        // },
 
         //获取账户列表
         getAccountList() {

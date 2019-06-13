@@ -11,7 +11,6 @@ import {
     buildAccountTradesDBPath
 } from '__gConfig/pathConfig';
 import moment from "moment"
-import Vue from 'vue'
 
 /**
  * 获取策略列表
@@ -65,14 +64,16 @@ export const getStrategyAccounts = (strategyId) => {
 /**
  * 获取某策略下委托
  */
-export const getStrategyOrder = async(strategyId, {id, dateRange}) => {
+export const getStrategyOrder = async(strategyId, {id, dateRange}, tradingDay) => {
     //新建与之前重名策略，防止get之前的数据
     const strategys = await getStrategyById(strategyId)
     if(!strategys[0]) throw new Error('找不到该策略！');
     const strategyAddTime = strategys[0].add_time;
+    //tradeing day
+    const momentDay = tradingDay ? moment(tradingDay) : moment();
     //获取当天是日期范围
-    const startDate = Math.max((moment(moment().format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6), strategyAddTime)
-    const endDate = (moment(moment().add(1,'d').format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6)
+    const startDate = Math.max((moment(momentDay.format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6), strategyAddTime)
+    const endDate = (moment(momentDay.add(1,'d').format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6)
     //日期控件选出的日期都是0点的，需要加上一天才能将最后一天包含在内
     const dateRange0 = Math.max(moment(dateRange ? dateRange[0] : undefined).valueOf() * Math.pow(10, 6), strategyAddTime);
     const dateRange1 = moment(dateRange ? dateRange[1] : undefined).add(1,'d').valueOf() * Math.pow(10, 6);
@@ -80,7 +81,7 @@ export const getStrategyOrder = async(strategyId, {id, dateRange}) => {
     return new Promise((resolve, reject) => {
         let tableData = []
         getStrategyAccounts(strategyId).then(accounts => {
-            if(accounts.length == 0) resolve({count: 0, data: []});
+            if(accounts.length == 0) resolve([]);
             const promises = accounts.map(item => 
                     (runSelectDB(buildAccountOrdersDBPath(
                         item.account_id), 
@@ -88,15 +89,13 @@ export const getStrategyOrder = async(strategyId, {id, dateRange}) => {
                         ` AND (order_id LIKE '%${id}%' OR instrument_id LIKE '%${id}%' OR client_id LIKE '%${id}%')` + //有id筛选的时候
                         ` AND insert_time >= ${filterDate[0]} AND insert_time < ${filterDate[1]}` +
                         (dateRange ? `` : ` AND status NOT IN (3,4,5,6)`) //有日期筛选的时候,获取所有状态的数据；无日期的时候，获取的是当天的且未完成的
-                    ).then(orders => {
-                        tableData = tableData.concat(orders)
-                    }))
+                    ).then(orders => tableData = tableData.concat(orders)))
             )
             //用这种方式处理map+promise
             Promise.all(promises).then(() => {
                 //对整体排序，默认的只是账户1排序后面跟着账户2的排序，需要的是整体的排序
                 tableData.sort((a, b) => b.insert_time - a.insert_time)
-                resolve({count: 0, data: tableData})
+                resolve(tableData)
             })
         }).catch(err => {
             reject(err)
@@ -108,14 +107,16 @@ export const getStrategyOrder = async(strategyId, {id, dateRange}) => {
 /**
  * 获取某策略下成交
  */
-export const getStrategyTrade = async(strategyId, {id, dateRange}) => {
+export const getStrategyTrade = async(strategyId, {id, dateRange}, tradingDay) => {
     //新建与之前重名策略，防止get之前的数据    
     const strategys = await getStrategyById(strategyId)
     if(!strategys[0]) throw new Error('找不到该策咯！')
     const strategyAddTime = strategys[0].add_time;
+    //tradeing day
+    const momentDay = tradingDay ? moment(tradingDay) : moment();
     //获取当天是日期范围
-    const startDate = Math.max((moment(moment().format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6), strategyAddTime)
-    const endDate = (moment(moment().add(1,'d').format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6)
+    const startDate = Math.max((moment(momentDay.format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6), strategyAddTime)
+    const endDate = (moment(momentDay.add(1,'d').format('YYYY-MM-DD')).valueOf()) * Math.pow(10, 6)
     //日期控件选出的日期都是0点的，需要加上一天才能将最后一天包含在内
     const dateRange0 = Math.max(moment(dateRange ? dateRange[0] : undefined).valueOf() * Math.pow(10, 6), strategyAddTime);
     const dateRange1 = moment(dateRange ? dateRange[1] : undefined).add(1,'d').valueOf() * Math.pow(10, 6);
@@ -125,7 +126,7 @@ export const getStrategyTrade = async(strategyId, {id, dateRange}) => {
         getStrategyAccounts(strategyId).then(accounts => {
             let {length} = accounts
             let flag = 0
-            if(length == 0) resolve({count: 0, data: []})
+            if(length == 0) resolve([])
             accounts.map(item => {
                 runSelectDB(buildAccountTradesDBPath(item.account_id), 
                 `SELECT rowId, * FROM trade WHERE client_id = '${strategyId}'` + 
@@ -142,7 +143,7 @@ export const getStrategyTrade = async(strategyId, {id, dateRange}) => {
                     if(length != flag) return
                     //按时间排序
                     tableData.sort((a, b) => b.trade_time - a.trade_time)
-                    resolve({count: 0, data: tableData})
+                    resolve(tableData)
                 })
             })
         }).catch(err => {
@@ -181,9 +182,7 @@ export const getStrategyPos = (strategyId, {instrumentId, type}) => {
 /**
  * 获取某策略下收益曲线分钟线
  */
-export const getStrategyPnlMin = (strategyId) => {
-    // 在vuex中获得交易日
-    const tradingDay = (Vue.store.state.BASE.calendar || {}).trading_day
+export const getStrategyPnlMin = (strategyId, tradingDay) => {
     if(!tradingDay) throw new Error('无交易日！')
     return runSelectDB(buildStrategySnapshortsDBPath(strategyId), `SELECT * FROM portfolio_1m_snapshots WHERE trading_day = '${tradingDay}'`)
 }

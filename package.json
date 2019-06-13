@@ -1,7 +1,7 @@
 {
   "name": "kungfu",
   "author": "taurus.ai",
-  "version": "2.0.0-beta",
+  "version": "2.0.0",
   "description": "KungFu Trader",
   "config": {
     "pyver": "three",
@@ -22,20 +22,32 @@
     "clean:view": "rimraf .node-gyp .electron-gyp dist",
     "clean:engine": "cmake-js clean",
     "build": "yarn run build:engine && yarn run build:view",
-    "build:view": "node --max_old_space_size=8192 .electron-kungfu/build.js && electron-builder",
-    "build:engine": "cross-var cmake-js build --$npm_package_config_cmakejsopt",
-    "postbuild:engine": "cross-var cross-env CMAKEJSOPT=\"$npm_package_config_cmakejsopt\" pipenv run python python/pyinstaller.py",
-    "dev": "copyfiles -f cpp/wingchun/resources/commission.db resources/default && node .electron-kungfu/dev-runner.js",
+    "build:view": "yarn run copy && node --max_old_space_size=8192 .electron-kungfu/build.js && electron-builder",
+    "build:cpp": "cross-var cmake-js build --$npm_package_config_cmakejsopt",
+    "build:kfc": "cross-var cross-env CMAKEJSOPT=\"$npm_package_config_cmakejsopt\" pipenv run python python/pyinstaller.py",
+    "build:engine": "yarn run build:cpp && yarn run build:kfc",
+    "dev:kfc": "pipenv run python python/devrun.py",
+    "dev": "yarn run copy && node .electron-kungfu/dev-runner.js",
+    "dev:cli": "yarn run copy && node .electron-kungfu/dev-cli.js",
     "dist": "yarn run dist:render && yarn run dist:main",
     "dist:main": "cross-env NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --colors --config .electron-kungfu/webpack.main.config.js",
-    "dist:render": "cross-env NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --colors --config .electron-kungfu/webpack.renderer.config.js"
+    "dist:render": "cross-env NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --colors --config .electron-kungfu/webpack.renderer.config.js",
+    "dist:cli": "cross-env NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --colors --config .electron-kungfu/webpack.cli.config.js",
+    "copy": "copyfiles -f cpp/wingchun/resources/commission.db resources/default && copyfiles -f cpp/wingchun/resources/holidays.db resources/default"
   },
   "build": {
     "productName": "Kungfu.Trader",
+    "artifactName": "${productName}-${version}.${ext}",
     "appId": "taurus.ai.KungFu.Trader",
     "directories": {
-      "output": "build"
+      "output": "build/app"
     },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://taurusai.com/kungfu"
+      }
+    ],
     "files": [
       "dist/**/*",
       {
@@ -59,8 +71,7 @@
         "to": "kfc"
       }
     ],
-    "asar": false,
-    "asarUnpack": ["node_modules\\pm2\\lib\\Daemon.js"],
+    "asar": true,
     "dmg": {
       "contents": [
         {
@@ -111,9 +122,13 @@
   "dependencies": {
     "@babel/polyfill": "^7.2.5",
     "codemirror": "^5.44.0",
-    "element-ui": "2.4.8",
+    "colors": "^1.3.3",
+    "electron-updater": "^4.0.6",
+    "element-ui": "^2.8.2",
+    "fast-csv": "^2.5.0",
     "fkill": "^6.1.0",
     "fs-extra": "^7.0.1",
+    "getprocesses": "^1.1.1",
     "log4js": "^4.0.2",
     "mime": "^2.4.0",
     "moment": "^2.24.0",
@@ -122,6 +137,7 @@
     "pm2": "^3.5.0",
     "sqlite3": "^4.0.6",
     "tail": "^2.0.2",
+    "taskkill": "^2.0.0",
     "vue": "^2.6.10",
     "vue-router": "^3.0.1",
     "vue-virtual-scroller": "^1.0.0-rc.2",
@@ -136,6 +152,8 @@
     "babel-preset-stage-0": "^6.24.1",
     "babili-webpack-plugin": "^0.1.2",
     "bindings": "^1.5.0",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.16",
     "boost-lib": "^0.11.3",
     "cfonts": "^1.1.3",
     "chai": "^4.0.0",
