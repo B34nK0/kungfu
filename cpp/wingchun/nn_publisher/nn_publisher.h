@@ -13,6 +13,7 @@
 
 namespace kungfu
 {
+    //推送委托、成交、持仓、组合信息、账户信息、子账户组合信息
     class NNPublisher
     {
     public:

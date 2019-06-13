@@ -33,7 +33,9 @@ namespace kungfu
     class Calendar
     {
     public:
+    //建立服务器连接，接收交易日历更新
         Calendar();
+        //断开连接
         virtual ~Calendar();
 
         //判断是否是交易时间
@@ -99,6 +101,7 @@ namespace kungfu
         void get_current_via_req();
 
     protected:
+    //各交易所的开放时间，不应该写死吧？
         std::map<std::string, std::vector<std::vector<std::string>>> trading_times {
             {"CZCE", {{"9:00:00", "13:30:00", "21:00:00"}, {"11:30:00", "15:00:00", "23:30:00"}}},
             {"SHFE", {{"9:00:00", "13:30:00", "21:00:00"}, {"11:30:00", "15:00:00", "2:30:00"}}},
@@ -107,7 +110,7 @@ namespace kungfu
             {"SSE", {{"9:30:00", "13:00:00"}, {"11:30:00", "15:00:00"}}},
             {"SZE", {{"9:30:00", "13:00:00"}, {"11:30:00", "15:00:00"}}}
         };
-
+    //是否有夜盘
         std::map<std::string, bool> trading_evening {
             {"CZCE", true},
             {"SHFE", true},
@@ -116,13 +119,18 @@ namespace kungfu
             {"SSE", false},
             {"SZE", false}
         };
+        //请求链接
         int                             req_socket_;
+        //订阅链接
         int                             sub_socket_;
+        //主线程处理socket
         std::shared_ptr<std::thread>    thread_;
         std::atomic<bool>               started_;
         std::atomic<int>                current_;
+        //交易日切换回调
         std::vector<SwitchDayCallback>  cbs_;
     };
+    //在該類聲明時 同時聲明智能指針
     typedef std::shared_ptr<Calendar> CalendarPtr;
 }
 

@@ -43,15 +43,18 @@ namespace kungfu
     //行情
     struct Quote
     {
+        //16个字符
         char source_id[SOURCE_ID_LEN];              //柜台ID
+        //9个字符
         char trading_day[DATE_LEN];                 //交易日
-
+        //时间戳
         int64_t rcv_time;                           //数据接收时间
         int64_t data_time;                          //数据生成时间
-
+        //32个字符
         char instrument_id[INSTRUMENT_ID_LEN];      //合约ID
+        //16
         char exchange_id[EXCHANGE_ID_LEN];          //交易所ID
-
+        //char 类型 by constant
         InstrumentType instrument_type;             //合约类型
 
         double pre_close_price;                     //昨收价
@@ -92,12 +95,14 @@ namespace kungfu
 
         char instrument_id[INSTRUMENT_ID_LEN];      //合约ID
         char exchange_id[EXCHANGE_ID_LEN];          //交易所代码
-
+//char 类型 by constant
         InstrumentType instrument_type;             //合约类型
 
         double price;                               //委托价格
         int64_t volume;                             //委托量
+        //char 类型 by constant
         Side side;                                  //委托方向
+        //char 类型 by constant
         PriceType price_type;                       //订单价格类型（市价、限价、本方最优）
 
         int64_t main_seq;                           //主序号

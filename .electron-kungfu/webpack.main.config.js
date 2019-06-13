@@ -70,5 +70,5 @@ if (process.env.NODE_ENV === 'production') {
   )
 }
 
-
+//创建一个模块
 module.exports = mainConfig

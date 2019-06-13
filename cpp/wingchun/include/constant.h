@@ -67,7 +67,9 @@ namespace kungfu
     const PriceType PriceTypeBest = '1';
     const PriceType PriceTypeBest5 = '2';
     const PriceType PriceTypeLimit = '3';
+    //向前最优 买方最优？
     const PriceType PriceTypeForwardBest = '4';
+    //向后最优 卖方
     const PriceType PriceTypeReverseBest = '5';
 
     typedef char VolumeCondition;
@@ -87,6 +89,7 @@ namespace kungfu
     const OrderStatus OrderStatusCancelled = '3';
     const OrderStatus OrderStatusError = '4';
     const OrderStatus OrderStatusFilled = '5';
+    //部成部撤?
     const OrderStatus OrderStatusPartialFilledNotActive = '6';
     const OrderStatus OrderStatusPartialFilledActive = '7';
 

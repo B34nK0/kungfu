@@ -44,9 +44,9 @@ namespace kungfu
 
     void GatewayImpl::init()
     {
-
+        //创建日历服务器链接
         calendar_ = CalendarPtr(new Calendar());
-
+        //创建时间处理线程
         loop_ = std::shared_ptr<EventLoop>(new EventLoop(get_name()));
 
         if (!create_folder_if_not_exists(GATEWAY_FOLDER(this->get_name())))
@@ -54,7 +54,7 @@ namespace kungfu
             SPDLOG_ERROR("failed to create gateway folder {}", GATEWAY_FOLDER(this->get_name()));
             abort();
         }
-
+        //通过宏 格式化名称
         std::string rep_url = GATEWAY_REP_URL(get_name());
         rsp_socket_ = std::shared_ptr<nn::socket>(new nn::socket(AF_SP, NN_REP));
         try
@@ -67,6 +67,7 @@ namespace kungfu
             abort();
         }
 
+        //通过loop来绑定socket 处理socket时间
         loop_->add_socket(rsp_socket_);
 
         std::string state_db_file = GATEWAY_STATE_DB_FILE(get_name());
@@ -74,8 +75,9 @@ namespace kungfu
         std::replace(state_db_file.begin(), state_db_file.end(), '/', '\\');
 #endif
         std::remove(state_db_file.c_str());
+        //存储地址
         state_storage_ =  std::shared_ptr<GatewayStateStorage>(new GatewayStateStorage(state_db_file));
-
+        //socket链接 推送数据：委托、成交、组合、持仓、账户信息
         std::string url = GATEWAY_PUB_URL(name_);
         nn_publisher_ = std::unique_ptr<NNPublisher>(new NNPublisher(url));
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -103,11 +105,14 @@ namespace kungfu
         record.state = state;
 
         nlohmann::json data = record;
+        //推送网关状态
         get_publisher()->publish(kungfu::MsgType::GatewayState, data);
+        //持久化网关状态
         state_storage_->set_state(this->name_, record.update_time, state, message);
 
         if (state == GatewayState::Ready)
         {
+            //主要交易网关tdgateway 重载
             on_started();
         }
     }
@@ -118,6 +123,7 @@ namespace kungfu
 
         std::string journal_folder = MD_JOURNAL_FOLDER(get_source());
         kungfu::yijinjing::JournalWriterPtr writer = kungfu::yijinjing::JournalWriter::create(journal_folder, MD_JOURNAL_NAME(get_source()), this->get_name());
+        //存储 行情、逐笔委托、逐笔成交
         std::shared_ptr<kungfu::MarketDataStreamingWriter> feed_handler = std::shared_ptr<kungfu::MarketDataStreamingWriter>(new kungfu::MarketDataStreamingWriter(writer));
         register_feed_handler(feed_handler);
 
@@ -125,6 +131,7 @@ namespace kungfu
 #ifdef _WINDOWS
         std::replace(subscription_db_file.begin(), subscription_db_file.end(), '/', '\\');
 #endif
+        //sql对象
         std::shared_ptr<kungfu::SubscriptionStorage> subscription_storage = std::shared_ptr<kungfu::SubscriptionStorage>(new kungfu::SubscriptionStorage(subscription_db_file));
         register_subscription_storage(subscription_storage);
 

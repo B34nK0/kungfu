@@ -13,12 +13,13 @@
 
 namespace kungfu
 {
+    //接口层
     class Gateway
     {
     public:
         virtual const std::string& get_name() const = 0;
         virtual const std::string& get_source() const = 0;
-
+        //enum
         virtual GatewayState get_state() const = 0;
         virtual void set_state(const GatewayState& state, const std::string& message = "") = 0;
 
@@ -29,7 +30,7 @@ namespace kungfu
         virtual void on_login(const std::string& recipient, const std::string& client_id) = 0;
         virtual void on_started() = 0;
     };
-
+    //行情网关 订阅、取消订阅
     class MdGateway: virtual public Gateway
     {
     public:
@@ -39,7 +40,7 @@ namespace kungfu
         virtual void on_login(const std::string& recipient, const std::string& client_id) = 0;
         virtual void on_started() = 0;
     };
-
+    //交易网关：下单撤单、查询持仓信息、账户信息
     class TdGateway: virtual public Gateway
     {
     public:

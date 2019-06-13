@@ -36,15 +36,19 @@ namespace kungfu
     struct OrderInput
     {
         uint64_t order_id;                       //订单ID
-
+        //32
         char instrument_id[INSTRUMENT_ID_LEN];   //合约代码
+        //16
         char exchange_id[EXCHANGE_ID_LEN];       //交易所代码
+        //32
         char account_id[ACCOUNT_ID_LEN];         //账号ID
+        //32
         char client_id[CLIENT_ID_LEN];           //Client ID
 
         InstrumentType instrument_type;          //合约类型
 
         double limit_price;                      //价格
+        //委托里的冻结价格是做什么用途
         double frozen_price;                     //冻结价格
 
         int64_t volume;                          //数量
@@ -72,9 +76,10 @@ namespace kungfu
     {
         uint64_t order_id;                       //订单ID
         uint64_t order_action_id;                //订单操作ID
-
+        //char 类型，当前支持cancel
         OrderActionFlag action_flag;             //订单操作类型
 
+        //为什么撤单操作会带  价格跟数量， 还是撤单 只是委托单操作的一种
         double price;                            //价格
         int64_t volume;                          //数量
     };

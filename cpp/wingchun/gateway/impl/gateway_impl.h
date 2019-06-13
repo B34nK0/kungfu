@@ -25,6 +25,7 @@
 
 namespace kungfu
 {
+    //写入yijinjing内存数据库
     class MarketDataStreamingWriter: public MarketDataFeedHandler
     {
     public:
@@ -64,7 +65,7 @@ namespace kungfu
     private:
         kungfu::yijinjing::JournalWriterPtr writer_;
     };
-
+//网关的基础实现，获取名称、地址  更新状态
     class GatewayImpl: virtual public Gateway
     {
     public:
@@ -93,7 +94,7 @@ namespace kungfu
 
         std::shared_ptr<EventLoop> loop_;
         std::shared_ptr<nn::socket> rsp_socket_;
-
+        //日历服务器链接
         kungfu::CalendarPtr calendar_;
         std::shared_ptr<GatewayStateStorage> state_storage_;
         std::unique_ptr<NNPublisher> nn_publisher_;
@@ -123,7 +124,9 @@ namespace kungfu
         void on_subscribe(const std::string &recipient, const std::vector<Instrument> &instruments, bool is_level2);
 
     private:
+        //sql
         std::shared_ptr<SubscriptionStorage> subscription_storage_;
+        //yijinjing
         std::shared_ptr<MarketDataFeedHandler> feed_handler_;
     };
 

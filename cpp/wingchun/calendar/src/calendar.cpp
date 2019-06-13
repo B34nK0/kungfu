@@ -33,11 +33,12 @@ namespace kungfu
             thread_->join();
         }
     }
-
+//判断某时刻是否在对应交易所的交易时间段内
     bool Calendar::is_open(int64_t nano, const std::string& exchange_id)
     {
         std::string trading_day = get_trading_day_from_nano(nano);
         trading_day = get_next_trading_day(trading_day.c_str(),0);
+        //该交易所有夜盘
         if(trading_evening[exchange_id])
         {
             int64_t evening_start = get_open_time(trading_day, exchange_id, EVENING);
@@ -199,6 +200,7 @@ namespace kungfu
             char* buf = nullptr;
             std::string date;
             bool has_new = false;
+            //接收到交易日切换的推送信息
             int bytes = nn_recv(sub_socket_, &buf, NN_MSG, 0);
             if (bytes > 0)
             {
@@ -209,7 +211,7 @@ namespace kungfu
                 has_new = true;
                 nn_freemsg(buf);
             }
-
+            //交易日切换，推送订阅的回调
             if (has_new)
             {
                 for (auto& cb : cbs_)
