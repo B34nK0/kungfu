@@ -13,11 +13,11 @@ namespace kungfu
     enum class MsgType: int16_t
     {
         Error = 0,
-
+        //mdgateway
         Quote = 101,
         Entrust = 102,
         Transaction = 103,
-
+        //tdGateway
         OrderInput = 201,
         OrderAction = 202,
         Order = 203,
@@ -30,7 +30,7 @@ namespace kungfu
         PositionDetail = 210,
         SubPortfolioInfo = 211,
 
-
+        //
         ReqLogin = 301,
         Subscribe = 302,
         ReqOrderInput = 303,

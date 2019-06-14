@@ -77,6 +77,7 @@ namespace kungfu
     {
         switch (status)
         {
+            //过程态 返回false
             case OrderStatusSubmitted:
             case OrderStatusPending:
             case OrderStatusPartialFilledNotActive:

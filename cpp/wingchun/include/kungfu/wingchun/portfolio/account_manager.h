@@ -57,6 +57,7 @@ namespace kungfu
         virtual void load_from_db(SQLite::Database& db) = 0;
 
     };
+    //这是什么模式 接口类->空间内函数创建实例，impl
     typedef std::shared_ptr<AccountManager> AccountManagerPtr;
     AccountManagerPtr create_account_manager(const char* name, AccountType type, const char *db = nullptr);
 }

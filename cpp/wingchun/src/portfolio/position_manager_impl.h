@@ -47,6 +47,7 @@ namespace kungfu
 
     private:
         double choose_price(const Position& pos) const;
+        //重新计算仓位状态 如果pnl有改变返回true
         bool recalc_pos_by_price(Position& pos);
         void callback(const Position& pos) const;
         void init_pos_from_input(const OrderInput* input);

@@ -189,11 +189,13 @@ namespace kungfu
         }
         return market_value;
     }
-
+    //订阅行情用于更新持仓pnl
     void PositionManagerImpl::on_quote(const kungfu::journal::Quote *quote)
     {
         last_update_ = quote->rcv_time;
         auto key = get_symbol(quote->instrument_id, quote->exchange_id);
+
+        //使用lambda相对函数封装来说更透明
         auto func = [&](std::map<std::string, Position>& m) {
             auto long_iter = m.find(key);
             if (long_iter != m.end())
@@ -219,6 +221,7 @@ namespace kungfu
                 {
                     pos.pre_settlement_price = quote->pre_settlement_price;
                 }
+                //如果pnl改变
                 if (recalc_pos_by_price(pos))
                 {
                     callback(pos);
@@ -232,15 +235,16 @@ namespace kungfu
     void PositionManagerImpl::on_order(const kungfu::journal::Order *order)
     {
         last_update_ = order->rcv_time;
+        //只处理终态且存在的订单
         if (!is_final_status(order->status) || frozen_map_.find(order->order_id) == frozen_map_.end())
         {
             return;
         }
-
+        //股票跟债券
         if (order->instrument_type == InstrumentTypeStock || order->instrument_type == InstrumentTypeBond)
         {
             on_order_stock(order);
-        }
+        }//期货
         else if (order->instrument_type == InstrumentTypeFuture)
         {
             on_order_future(order);
@@ -250,6 +254,7 @@ namespace kungfu
     void PositionManagerImpl::on_trade(const kungfu::journal::Trade *trade)
     {
         last_update_ = trade->rcv_time;
+        //成交单的数量不应该为0 
         if (trade->volume == 0)
         {
             return;
@@ -557,8 +562,11 @@ namespace kungfu
             // 这样计算不会太离谱
             pos.cost_price = pos.last_price;
         }
+        //只有期货才会有合约乘数跟保证金率
         int contract_multiplier = 1;
         double margin_ratio = 1;
+
+        //如果是期货，通过合约管理 获取保证金率跟合约乘数 
         if (pos.instrument_type == InstrumentTypeFuture)
         {
             auto* instrument = InstrumentManager::get_instrument_manager()->get_future_instrument(pos.instrument_id, pos.exchange_id);
@@ -639,6 +647,7 @@ namespace kungfu
 
     void PositionManagerImpl::insert_detail_from_trade(const kungfu::journal::Trade *trade)
     {
+        //成交单即时持仓明细
         Position pos = {};
         pos.rcv_time = trade->rcv_time;
         pos.update_time = trade->rcv_time;
@@ -695,7 +704,10 @@ namespace kungfu
 
     void PositionManagerImpl::on_order_stock(const kungfu::journal::Order *order)
     {
+        //处理终态
+        //根据股票委托计算当前仓位变化
         auto key = get_symbol(order->instrument_id, order->exchange_id);
+        //股票只有long头寸
         if (long_pos_map_.find(key) != long_pos_map_.end())
         {
             auto fro = frozen_map_[order->order_id];
@@ -711,6 +723,7 @@ namespace kungfu
 
     void PositionManagerImpl::on_order_future(const kungfu::journal::Order *order)
     {
+        //处理终态
         auto key = get_symbol(order->instrument_id, order->exchange_id);
         auto& pos_map = get_future_direction(order->side, order->offset) == DirectionLong ? long_pos_map_ : short_pos_map_;
         if (pos_map.find(key) != pos_map.end())
@@ -718,6 +731,7 @@ namespace kungfu
             auto fro = frozen_map_[order->order_id];
             frozen_map_.erase(order->order_id);
             auto& pos = pos_map[key];
+            //上期所的委托回报显示平昨还是平今,其他交易所默认 先计算昨仓
             if (!(order->offset == OffsetCloseToday && strcmp(order->exchange_id, EXCHANGE_SHFE) == 0))
             {
                 pos.frozen_yesterday = std::max<int64_t>(pos.frozen_yesterday - fro, 0);
@@ -732,9 +746,10 @@ namespace kungfu
     void PositionManagerImpl::on_trade_stock(const kungfu::journal::Trade *trade)
     {
         auto key = get_symbol(trade->instrument_id, trade->exchange_id);
+        //股票昨仓可平，而卖 便会是冻结昨仓后操作
         if (frozen_map_.find(trade->order_id) != frozen_map_.end())
             long_pos_map_[key].frozen_yesterday -= trade->volume;
-
+        //
         if (long_pos_map_.find(key) == long_pos_map_.end())
         {
             init_pos_from_trade(trade);
@@ -792,32 +807,41 @@ namespace kungfu
                 pos_map[key].frozen_yesterday = std::max<int64_t>(pos_map[key].frozen_yesterday - trade->volume, 0);
             }
         }
-
+        //新建仓位
         if (pos_map.find(key) == pos_map.end()) {
             init_pos_from_trade(trade);
         }
+        //根据成交单更新持仓
         auto &pos = pos_map[key];
         pos.update_time = trade->rcv_time;
         pos.last_price = trade->price;
         auto *instrument = InstrumentManager::get_instrument_manager()->get_future_instrument(trade->instrument_id,
                                                                                               trade->exchange_id);
+
+        //开仓 更新开仓成本、持仓成本、数量
         if (trade->offset == OffsetOpen) {
             auto open_cost =
                     trade->price * trade->volume * instrument->contract_multiplier + trade->tax + trade->commission;
             pos.cost_price = (pos.cost_price * pos.volume * instrument->contract_multiplier + open_cost) /
                              (pos.volume + trade->volume) / instrument->contract_multiplier;
             pos.volume += trade->volume;
-
+            //持仓明细
             insert_detail_from_trade(trade);
         } else {
             bool avail_enough = false;
+            //没有对应仓位
             if (pos_map.find(key) != pos_map.end()) {
+                //平仓费用
                 auto close_gain =
                         trade->price * trade->volume * instrument->contract_multiplier - trade->tax - trade->commission;
                 auto &pos = pos_map[key];
+                //平仓盈亏,已包含费用
                 auto close_profit = close_gain - pos.cost_price * trade->volume * instrument->contract_multiplier;
+                //已实现盈亏
                 pos.realized_pnl += close_profit;
+                //平仓盈亏
                 pos.close_pnl += close_profit;
+                //上期所需处理平昨平今
                 if (strcmp(trade->exchange_id, EXCHANGE_SHFE) == 0) {
                     if (trade->offset == OffsetCloseToday) {
                         if (pos.volume - pos.yesterday_volume >= trade->volume) {
@@ -852,6 +876,7 @@ namespace kungfu
 
                 remove_detail_from_trade(trade);
             }
+            //仓位不足，需要报错呀
             if (!avail_enough) {
                 SPDLOG_WARN("Not enough available positions");
             }

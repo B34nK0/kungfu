@@ -22,11 +22,21 @@ namespace kfj = kungfu::journal;
 
 namespace kungfu
 {
+    //事件处理器
+#pragma region MDGateway
+    //行情回调
     typedef std::function<void (const kfj::Quote& quote)> QuoteCallback;
+    //逐笔委托回调
     typedef std::function<void (const kfj::Entrust& entrust)> EntrustCallback;
+    //逐笔成交回调
     typedef std::function<void (const kfj::Transaction& transaction)> TransactionCallback;
+#pragma endregion
+
+    //MdGateway 注册回调
     typedef std::function<void (const std::string& recipient, std::vector<kfj::Instrument>&, bool is_level2)> SubscribeCallback;
     typedef std::function<void (const std::string& recipient, const std::string& client_id)> ReqLoginCallback;
+
+
     typedef std::function<void (const kfj::OrderInput& input)> OrderInputCallback;
     typedef std::function<void (const kfj::OrderAction& action)> OrderActionCallback;
     typedef std::function<void (const kfj::Order& order)> OrderCallback;
@@ -65,6 +75,7 @@ namespace kungfu
         void register_order_callback(OrderCallback callback);
         void register_trade_callback(TradeCallback callback);
 
+        //mdgateway
         void register_subscribe_callback(SubscribeCallback callback);
         void register_req_login_callback(ReqLoginCallback callback);
 
@@ -104,8 +115,11 @@ namespace kungfu
         EntrustCallback entrust_callback_;
         TransactionCallback transaction_callback_;
 
+        //mdgateway
         ReqLoginCallback login_callback_;
         SubscribeCallback sub_callback_;
+
+
         OrderInputCallback order_input_callback_;
         OrderActionCallback order_action_callback_;
         OrderCallback order_callback_;

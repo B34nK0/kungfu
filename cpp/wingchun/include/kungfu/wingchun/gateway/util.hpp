@@ -26,7 +26,9 @@ namespace kungfu
         using namespace kungfu::flying;
         struct GatewayLoginRsp
         {
+            //char 
             AccountType type; // TdGateway 需要返回账号类型
+            //enum
             GatewayState state;
             std::string error_msg;
         };

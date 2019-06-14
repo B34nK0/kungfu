@@ -183,14 +183,19 @@ namespace kungfu
         void on_switch_day(const std::string& trading_day);
 
     private:
+    //streamingWrite
         std::shared_ptr<TraderDataFeedHandler> feed_handler_;
+        //委托单存储
         std::shared_ptr<kungfu::storage::OrderStorage> order_storage_;
+        //成交单存储
         std::shared_ptr<kungfu::storage::TradeStorage> trade_storage_;
+        //AccountManager是接口类，实例 account_manager_impl
         std::shared_ptr<kungfu::AccountManager> account_manager_;
+        //OrderManager是接口类，实例 OrderManagerImpl
         std::shared_ptr<oms::OrderManager> order_manager_;
-
+        //id生成 订单id
         std::unique_ptr<UidGenerator> uid_generator_;
-
+        //一次请求的持仓快照
         std::vector<Position> rsp_pos_;
         std::vector<Position> rsp_pos_detail_;
     };

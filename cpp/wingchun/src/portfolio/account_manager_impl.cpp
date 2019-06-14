@@ -18,7 +18,9 @@ namespace kungfu
     {
         strcpy(account_.account_id, account_id);
         account_.account_type = type;
+        //
         pos_manager_ = create_position_manager(account_id);
+        //行情驱动position_manager_impl计算pnl后回调
         pos_manager_->register_pos_callback(std::bind(&AccountManagerImpl::on_pos_callback, this, std::placeholders::_1));
     }
 
@@ -467,7 +469,9 @@ namespace kungfu
 
     void AccountManagerImpl::load_from_db(const char *db_file)
     {
+        //事务处理 创建元数据（更新时间、交易日）、pnl、pos、acc 表
         portfolio_util::init_db(db_file);
+        //只读加载账户数据
         SQLite::Database db(db_file, SQLite::OPEN_READONLY);
         load_from_db(db);
     }
@@ -532,6 +536,7 @@ namespace kungfu
 
     AccountManagerPtr create_account_manager(const char* name, AccountType type, const char *db)
     {
+        //db的目的用于加载原有数据
         auto account_manager = AccountManagerPtr(new AccountManagerImpl(name, type));
         if (db != nullptr)
         {
