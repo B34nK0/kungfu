@@ -14,6 +14,7 @@ namespace kungfu
     {
         const char *name = "KF_HOME";
         char *value;
+        //标准库函数
         value = getenv(name);
         return value;
     }

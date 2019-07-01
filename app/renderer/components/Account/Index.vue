@@ -133,13 +133,16 @@ export default {
         //获取委托推送信息
         buildOrderNanomsgListener() {
             const t = this
+            //from buildNmsg.js 如果old存在，即先close，再建立ipc链接
             const orderNanomsg = refreshGatewayNanomsg('td_'+ t.currentAccount.account_id, t.oldOrderNanomsg)
             if(!orderNanomsg) return;
             t.oldOrderNanomsg = orderNanomsg
+            //接收ipc回报
             orderNanomsg.on('data', buf => {
                 const orderData = JSON.parse(String(buf).replace(/\0/g,''))
                 const {data, msg_type} = orderData
                 if(msgType.order == msg_type) {
+                    //这是个list
                     t.orderNanomsgListener = Object.freeze(data)
                 }
             })
@@ -163,9 +166,11 @@ export default {
         //获取持仓推送信息
         buildPosNanomsgListener() {
             const t = this
+            //第二参数来确定订阅的是持仓，委托等类型么？
             const posNanomsg = refreshGatewayNanomsg('td_' + t.currentAccount.account_id, t.oldPosNanomsg)
             if(!posNanomsg) return;
             t.oldPosNanomsg = posNanomsg
+            //相当于回调触发
             posNanomsg.on('data', buf => {
                 const posData = JSON.parse(String(buf).replace(/\0/g,''))
                 const {data, msg_type} = posData

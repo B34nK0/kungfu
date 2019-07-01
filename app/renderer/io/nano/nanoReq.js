@@ -59,7 +59,7 @@ export const nanoCancelAllOrder = ({targetId, cancelType, id}) => {
     })
 }
 
-
+// 获取交易进程的链接 推送数据
 export const nanoMakeOrder = (gatewayName, makeOrderData) => {
     return new Promise(resolve => {
         const reqMsg = JSON.stringify({

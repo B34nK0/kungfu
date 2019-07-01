@@ -223,6 +223,7 @@ export default {
                         return;
                     }
                     t.$message.info('正在发送订单指令...')
+                    // 顶层组件消息后调用下单的链接 发往 对应的交易 进程 
                     nanoMakeOrder(gatewayName, makeOrderForm).then(() => t.$message.success('下单指令已发送！'))
                 }
             })

@@ -64,7 +64,7 @@ namespace kungfu
                 login_rsp.error_msg = j["error_msg"].get<std::string>();
             }
         }
-
+        //登录账号
         inline GatewayLoginRsp login(const std::string& gateway, const std::string& sender)
         {
             LoginRequest request;
@@ -76,6 +76,7 @@ namespace kungfu
             req_msg.msg_type = kungfu::MsgType::ReqLogin;
             req_msg.data = js_req;
             std::string url = GATEWAY_REP_URL(gateway);
+            //nanomsg通讯层为socket 发往对应的交易进程进行登录操作,5s的超时
             NNMsg rsp_msg = yijinjing::nanomsg::request(url, req_msg, kungfu::yijinjing::MILLISECONDS_PER_SECOND * 5);
 
             GatewayLoginRsp rsp = {};
@@ -83,19 +84,19 @@ namespace kungfu
 
             return rsp;
         }
-
+        //添加行情源
         inline GatewayLoginRsp add_market_feed(const std::string& source, const std::string& sender)
         {
             std::string gateway = fmt::format(MD_GATEWAY_NAME_FORMAT, source);
             return login(gateway, sender);
         }
-
+        //添加交易账户
         inline GatewayLoginRsp register_trade_account(const std::string& source, const std::string& account_id, const std::string& sender)
         {
             std::string gateway = fmt::format(TD_GATEWAY_NAME_FORMAT, source, account_id);
             return login(gateway, sender);
         }
-
+        //订阅标的
         inline void subscribe(const std::string& source, const std::vector<journal::Instrument>& instruments, bool is_level2, const std::string& sender)
         {
             std::string gateway = fmt::format(MD_GATEWAY_NAME_FORMAT, source);

@@ -97,6 +97,7 @@ export default {
             t.$store.dispatch('getCalendar');
             const sub = connectCalendarNanomsg()
             if(!sub) return;
+            //设置了回调
             sub.on('data', buf => {
                 const data = JSON.parse(String(buf).replace(/\0/g,''))
                 //监听交易日的变化

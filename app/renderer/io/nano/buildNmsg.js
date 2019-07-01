@@ -1,6 +1,9 @@
+//c重写的zeroMQ
 const nano = require('nanomsg');
 const { BASE_DIR, GATEWAY_DIR, STRATEGY_DIR, SOCKET_DIR } = require('__gConfig/pathConfig');
+//文件系统
 const fse = require('fs-extra');
+//处理文件路径
 const path = require('path');
 window.nanomsgController = {}
 
@@ -95,6 +98,7 @@ export const reqCalendarNanomsg = () => {
 
 
 //手动下撤单(账户)
+//返回交易进程通道 
 export const reqGatewayNanomsg = (gatewayName) => {
     const req = nano.socket('req', {
         rcvtimeo: 1000
@@ -115,6 +119,7 @@ export const reqStrategyNanomsg = (strategyId) => {
     fse.ensureDirSync(ipcDir)
     const ipcPath = path.join(ipcDir, 'rep.ipc');
     const addr = `ipc://${ipcPath}`
+    //通过ipc方式实现本机进程间通信 
     req.connect(addr)
     return req
 }

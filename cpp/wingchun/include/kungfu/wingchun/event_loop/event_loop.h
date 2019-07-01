@@ -83,13 +83,15 @@ namespace kungfu
         void register_algo_order_status_callback(AlgoOrderStatusCallback callback);
         void register_algo_order_action_callback(AlgoOrderActionCallback callback);
 
+#pragma region req
+        //手动下单、撤单
         void register_manual_order_input_callback(ManualOrderInputCallback callback);
         void register_manual_order_action_callback(ManualOrderActionCallback callback);
 
         void register_reload_instruments_callback(ReloadInstrumentsCallback callback);
 
         void register_signal_callback(SignalCallback handler);
-
+#pragma endregion
         void run();
         void stop();
 
