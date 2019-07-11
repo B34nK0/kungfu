@@ -144,6 +144,7 @@ namespace kungfu
     {
         std::map<std::string, Instrument> m;
         Instrument ins = {};
+        //使用lamba起到函数抽取式结构
         auto func = [&](const std::map<std::string, Position>& pos_map) {
             for (const auto& iter : pos_map)
             {
@@ -174,9 +175,12 @@ namespace kungfu
         double market_value = 0.0;
         for (const auto& iter : long_pos_map_)
         {
+            //股票\债券 有市值概念
             if (iter.second.instrument_type == InstrumentTypeStock || iter.second.instrument_type == InstrumentTypeBond)
             {
+                //获取持仓最新价，股票 ：如果有close 次之 last，期货 ： 如有settle，次之 last
                 double price = choose_price(iter.second);
+                //逆回购
                 if (is_reverse_repurchase(iter.second.instrument_id, iter.second.exchange_id))
                 {
                     market_value += iter.second.volume;
@@ -334,7 +338,7 @@ namespace kungfu
     {
         boost::ignore_unused(account);
     }
-
+    //下单指令 如果是平仓，需要冻结持仓
     void PositionManagerImpl::on_order_input(const kungfu::journal::OrderInput *input)
     {
         // 不处理开仓

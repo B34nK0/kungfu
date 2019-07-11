@@ -123,7 +123,7 @@ namespace kungfu
             int error_id = api_->ReqOrderInsert(&ctp_input, ++request_id_);
 
             int64_t nano = kungfu::yijinjing::getNanoTime();
-
+            //这是一个内联函数，转换为 journal::Order
             Order order = get_order(input);
             order.insert_time = nano;
             order.update_time = nano;
@@ -133,7 +133,7 @@ namespace kungfu
             {
                 order.error_id = error_id;
                 order.status = OrderStatusError;
-
+                //发往account manager、推送、存储
                 on_order(order);
 
                 INSERT_ORDER_ERROR(fmt::format("(error_id) {}", error_id));
@@ -141,6 +141,7 @@ namespace kungfu
             }
             else
             {
+                //调用的错误单  为什么不放入map里 
                 CtpOrder order_record = {};
                 order_record.internal_order_id = input.order_id;
                 order_record.broker_id = broker_id_;
@@ -224,7 +225,7 @@ namespace kungfu
             int rtn = api_->ReqQryInstrument(&req, ++request_id_);
             return rtn == 0;
         }
-
+        //前置机重连后进行登录
         void TdGateway::OnFrontConnected()
         {
             CONNECT_INFO();
@@ -354,6 +355,7 @@ namespace kungfu
         void TdGateway::OnRtnTrade(CThostFtdcTradeField *pTrade)
         {
             TRADE_TRACE(to_string(*pTrade));
+            //获取成交单对应的委托单
             auto order_info = order_mapper_->get_order_info_by_sys_id(pTrade->ExchangeID, pTrade->OrderSysID);
 
             if (order_info.internal_order_id == 0)
@@ -372,7 +374,7 @@ namespace kungfu
                 on_trade(trade);
             }
         }
-
+        //查完资金后查持仓
         void TdGateway::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount,
                                                CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
         {
@@ -398,7 +400,7 @@ namespace kungfu
                 req_position();
             }
         }
-
+        //查询完持仓后 查持仓明细
         void TdGateway::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition,
                                                  CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
         {
@@ -418,6 +420,7 @@ namespace kungfu
                     pos.update_time = nano;
                     auto& pos_map = pos.direction == DirectionLong ? long_pos_map_ : short_pos_map_;
                     auto iter = pos_map.find(std::string(pInvestorPosition->InstrumentID));
+                    //map里已有持仓，这里的情况是 昨仓 今仓会分开推送
                     if (iter != pos_map.end())
                     {
                         pos.cost_price = (pos.cost_price * pos.volume + iter->second.cost_price * iter->second.volume) /
@@ -430,9 +433,10 @@ namespace kungfu
                         pos.position_pnl = pos.realized_pnl + pos.unrealized_pnl;
                     }
                     pos_map[std::string(pInvestorPosition->InstrumentID)] = pos;
+                    //更新至accmanager
                     on_position(pos, bIsLast);
                 }
-
+                //清空，避免下次查询回报冲突
                 if (bIsLast)
                 {
                     long_pos_map_.clear();
@@ -471,7 +475,7 @@ namespace kungfu
                 }
             }
         }
-
+        //查询合约代码后查询资金
         void TdGateway::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo,
                                            int nRequestID, bool bIsLast)
         {

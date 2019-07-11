@@ -62,6 +62,7 @@ namespace kungfu
             int request_id_;
 
             CThostFtdcTraderApi* api_;
+            //sqlite操作
             std::shared_ptr<kungfu::ctp::OrderMapper> order_mapper_;
 
             static const std::unordered_map<int, std::string> kDisconnectedReasonMap;
