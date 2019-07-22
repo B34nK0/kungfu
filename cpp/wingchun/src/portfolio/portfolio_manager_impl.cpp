@@ -181,6 +181,7 @@ namespace kungfu
     void PortfolioManagerImpl::on_quote(const kungfu::journal::Quote *quote)
     {
         last_update_ = quote->rcv_time;
+        //通过宏来减少重复代码:遍历组合下的账户列表后 调用对应函数
         IMPLEMENT_DATA_BODY(on_quote, quote)
     }
 
@@ -219,6 +220,7 @@ namespace kungfu
 
     void PortfolioManagerImpl::on_account(const kungfu::flying::AccountInfo &account)
     {
+        //
         last_update_ = std::max<int64_t>(last_update_, account.rcv_time);
         if (accounts_.find(account.account_id) == accounts_.end())
         {

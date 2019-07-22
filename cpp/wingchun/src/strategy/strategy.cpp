@@ -27,10 +27,12 @@ namespace kungfu
     public:
         impl(Strategy* strategy, const std::string& name) : strategy_(strategy), name_(name), event_loop_(new EventLoop(name)), util_(new StrategyUtil(name))
         {
+            //策略的通讯地址,策略需是唯一的
             std::string rep_url = STRATEGY_REP_URL(name_);
             rsp_socket_ = std::shared_ptr<yijinjing::nanomsg::socket>(new yijinjing::nanomsg::socket(AF_SP, NN_REP));
             try
             {
+                //bind方式需双方建立链接
                 rsp_socket_->bind(rep_url.c_str());
             }
             catch(std::exception &e)
@@ -184,6 +186,7 @@ namespace kungfu
     private:
         Strategy* strategy_;
         std::string name_;
+        //一个策略也是一个消费队列，通过ipc接收请求及消费
         EventLoopPtr event_loop_;
         StrategyUtilPtr util_;
         std::shared_ptr<yijinjing::nanomsg::socket> rsp_socket_;

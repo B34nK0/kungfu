@@ -206,6 +206,7 @@ namespace kungfu
             }
 
             //注册算法订单类型
+            //采用模板来创建算法对应方法
             template <typename AlgoOrderDerived>
             void register_type(std::string& algo_type)
             {

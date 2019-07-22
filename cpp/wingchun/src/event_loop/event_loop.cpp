@@ -26,6 +26,7 @@ namespace kungfu
 
     void EventLoop::subscribe_nanomsg(const std::string& url)
     {
+        //订阅某个url发布的消息,服务端可不等待客户端链接
         std::shared_ptr<yijinjing::nanomsg::socket> socket = std::shared_ptr<yijinjing::nanomsg::socket>(new yijinjing::nanomsg::socket(AF_SP, NN_SUB));
         socket->connect(url.c_str());
         socket->setsockopt(NN_SUB, NN_SUB_SUBSCRIBE, "", 0);
@@ -34,6 +35,7 @@ namespace kungfu
 
     void EventLoop::bind_nanomsg(const std::string &url)
     {
+        //绑定某个url通道,必须双方连接好了再推送
         std::shared_ptr<yijinjing::nanomsg::socket> socket = std::shared_ptr<yijinjing::nanomsg::socket>(new yijinjing::nanomsg::socket(AF_SP, NN_REP));
         socket->bind(url.c_str());
         socket_vec_.emplace_back(socket);
@@ -179,11 +181,14 @@ namespace kungfu
 
     void EventLoop::iteration()
     {
+        //notice继承至socket_holder，wait实际上是socket的recv阻塞，当收到消息后return，再通过last_message获取socket接收到信息
+        //last_message返回接收的字符串,但是这里并没有使用，而是通过reader去读取yjj里的内容
+
         if (!low_latency_ && notice_.wait())
         {
             notice_.last_message();
         }
-        
+        //以下消息属于订阅方式
         int64_t nano = -1;
         if (reader_ != nullptr)
         {
@@ -324,9 +329,11 @@ namespace kungfu
             nano = yijinjing::getNanoTime();
         }
         scheduler_->update_nano(nano);
-
+        //以下消息时req
+        //遍历订阅的通道，绑定的直连通道有没发布消息
         for (const auto& socket: socket_vec_)
         {
+            //非阻塞接收数据
             int rc = socket->recv(NN_DONTWAIT);
             if (rc > 0)
             {

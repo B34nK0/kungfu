@@ -76,6 +76,7 @@ namespace kungfu
     bool StrategyUtil::add_md(const std::string &source_id)
     {
         storage::SourceListStorage(STRATEGY_MD_FEED_DB_FILE(name_)).add_source(source_id);
+        //登录行情网关
         auto rsp = gateway::add_market_feed(source_id, name_);
         if (rsp.state != GatewayState::Ready)
         {
@@ -96,14 +97,14 @@ namespace kungfu
 
         storage::AccountListStorage(STRATEGY_ACCOUNT_LIST_DB_FILE(name_)).add_account(this->name_, account_id, source_id);
         publisher_->publish_sub_portfolio_info(info);
-
+        //登录交易账号
         auto rsp = gateway::register_trade_account(source_id, account_id, this->name_);
 		if (rsp.error_msg != "")
 		{
 			return false;
 		}
         info.account_type = rsp.type;
-
+        //通过登录的网关来确人该策略绑定了什么类型的账号
         has_stock_account_ = has_stock_account_ || (info.account_type == AccountTypeStock || info.account_type == AccountTypeCredit);
         has_future_account_ = has_future_account_ || info.account_type == AccountTypeFuture;
 
@@ -486,7 +487,10 @@ namespace kungfu
     void StrategyUtil::init_portfolio_manager()
     {
         std::string asset_db_file = STRATEGY_ASSET_DB_FILE(name_);
+        //创建策略组合,如果db里有该组合信息，那么加载
         portfolio_manager_ = create_portfolio_manager(this->name_.c_str(), asset_db_file.c_str());
+
+        //这里有点绕，strategyUtil创建的publisher 是以策略名，当portfolio_manager的持仓有变化 再通知出来？
         portfolio_manager_->register_pos_callback(std::bind(&NNPublisher::publish_pos, publisher_.get(), std::placeholders::_1));
         portfolio_manager_->register_pnl_callback(std::bind(&NNPublisher::publish_portfolio_info, publisher_.get(), std::placeholders::_1,MsgType::Portfolio));
 
@@ -506,8 +510,10 @@ namespace kungfu
                 folders.emplace_back(TD_JOURNAL_FOLDER(account.source_id, account.account_id));
                 names.emplace_back(TD_JOURNAL_NAME(account.source_id, account.account_id));
             }
+            //需要从多个行情，多个账户读取数据
             kungfu::yijinjing::JournalReaderPtr reader = kungfu::yijinjing::JournalReader::create(folders, names, last_update);
             kungfu::yijinjing::FramePtr frame = reader->getNextFrame();
+            //读取未消费信息
             while (frame != nullptr)
             {
                 int msg_type = frame->getMsgType();
