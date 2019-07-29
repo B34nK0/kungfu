@@ -7,7 +7,7 @@ import nnpy, pyyjj
 import kungfu.wingchun.constants
 
 from kungfu.command import command, arg
-
+#运行策略
 @arg('-p', '--path', type=str, help='path of strategy py file')
 @command(help='run trading strategy')
 def strategy(args, logger):
@@ -35,6 +35,7 @@ class Strategy(pywingchun.Strategy):
         self._on_transaction = getattr(impl, "on_transaction", lambda ctx, transaction: None)
         self._on_order = getattr(impl, 'on_order', lambda ctx, order: None)
         self._on_trade = getattr(impl, 'on_trade', lambda ctx, trade: None)
+        #调用 strategy模块
         getattr(impl, 'init', lambda ctx: None)(self)
 
     def register_nanotime_callback(self, nano, callback):

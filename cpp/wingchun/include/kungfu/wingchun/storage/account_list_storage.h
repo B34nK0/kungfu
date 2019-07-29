@@ -28,5 +28,4 @@ namespace kungfu
 
     }
 }
-
 #endif //KUNGFU_ACCOUNT_LIST_STORAGE_H

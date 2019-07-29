@@ -43,7 +43,8 @@ public:
         PYBIND11_OVERLOAD(void, kf::Strategy, on_algo_order_status, order_id, algo_type, event_msg);
     }
 };
-
+//提供给python调用的模块：
+//类：Instrument,FutureInstrument,Quote,Entrust,Transaction,OrderInput,Order,OrderAction,Trade,AccountInfo,Position,PortfolioInfo,Strategy,CalendarService,JournalPrinter
 PYBIND11_MODULE(pywingchun, m)
 {
     py::class_<kfj::Instrument>(m, "Instrument")

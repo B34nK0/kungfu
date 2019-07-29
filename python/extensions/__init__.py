@@ -7,6 +7,7 @@ if not kfext_log_level:
     kfext_log_level = 'error'
 kfext_logger = create_logger('extensions', kfext_log_level)
 
+# 扩展注册
 class ExtensionRegistry:
     def __init__(self, ext_type):
         self._registry = {}
@@ -21,6 +22,7 @@ class ExtensionRegistry:
     def names(self):
         return self._registry.keys()
 
+# 注入MD、TD模块
 EXTENSION_REGISTRY_MD=ExtensionRegistry('MD')
 EXTENSION_REGISTRY_TD=ExtensionRegistry('TD')
 EXTENSIONS={}
